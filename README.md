@@ -15,8 +15,9 @@ Font de veritat central de skills, templates, patterns i scripts per a tots els 
 ```
 platform/
 ├── skills/
-│   ├── universal/     ← Sempre actives a tots els projectes
+│   ├── universal/     ← Sempre actives a tots els projectes (8 skills)
 │   └── domain/        ← Activació manual per projecte
+├── prompts/v0/        ← Prompts per v0.dev (UI premium)
 ├── templates/         ← Plantilles per nous projectes i existents
 ├── patterns/          ← Lliçons apreses abstractes
 ├── mcp/               ← Catàleg i configuracions de MCPs
@@ -25,10 +26,29 @@ platform/
 
 ## Workflow diari
 
+### Comanda principal
+
+```bash
+platform/scripts/platform.sh
+```
+
+O amb subcomanda directa:
+
+```bash
+platform/scripts/platform.sh new <nom>
+platform/scripts/platform.sh import <nom>
+platform/scripts/platform.sh open <nom>
+platform/scripts/platform.sh status <nom>
+platform/scripts/platform.sh skills <nom>
+platform/scripts/platform.sh activate <skill> <projecte>
+platform/scripts/platform.sh v0 <tipus> [projecte]
+platform/scripts/platform.sh skills --list
+```
+
 ### Crear un projecte nou
 
 ```bash
-platform/scripts/init-new-project.sh <nom>
+platform/scripts/platform.sh new <nom>
 ```
 
 - Requereix `gh` (GitHub CLI) instal·lat i autenticat.
@@ -38,17 +58,17 @@ platform/scripts/init-new-project.sh <nom>
 ### Adaptar un projecte existent
 
 ```bash
-platform/scripts/init-existing-project.sh <nom>
+platform/scripts/platform.sh import <nom>
 ```
 
 - Detecta l'stack automàticament amb nivells de confiança (alta/mitjana/baixa).
-- No sobreescriu `.claude/CLAUDE.md` existent — si ja hi és, només afegeix directoris que faltin.
+- Escriu l'stack al CLAUDE.md entre marcadors (no sobreescriu info manual).
 - Si no hi ha skills de domini, ho indica sense fallar.
 
 ### Activar una skill de domini
 
 ```bash
-platform/scripts/activate-skill.sh <skill> <projecte>
+platform/scripts/platform.sh activate <skill> <projecte>
 ```
 
 - Crea un symlink a `.claude/active-skills/domain/<skill>`.
@@ -58,17 +78,7 @@ platform/scripts/activate-skill.sh <skill> <projecte>
 ### Suggerir skills per a un projecte
 
 ```bash
-platform/scripts/suggest-skills.sh <projecte>
-```
-
-- Analitza el projecte amb detecció dirigida (no escaneja recursivament).
-- Mostra cada skill suggerida amb confiança (alta/mitjana/baixa) i motiu.
-- No activa res automàticament — l'usuari decideix.
-
-### Analitzar stack i skills
-
-```bash
-platform/scripts/suggest-skills.sh <projecte>
+platform/scripts/platform.sh skills <projecte>
 ```
 
 - Separa stack detectat (tecnologies) de skills de domini suggerides.
@@ -76,7 +86,73 @@ platform/scripts/suggest-skills.sh <projecte>
 - Només suggereix skills que existeixen a `platform/skills/domain/`.
 - No activa res automàticament — l'usuari decideix.
 
-### Criteri de completitud
+### Estat del projecte
+
+```bash
+platform/scripts/platform.sh status <projecte>
+```
+
+Mostra: stack, skills actives, última decisió, estat actual.
+
+### Reprendre treball
+
+```bash
+platform/scripts/platform.sh open <projecte>
+```
+
+Mostra: skills actives, última decisió, pròxim pas.
+
+## Workflow UI premium
+
+Per a interfícies importants (dashboards, landing pages, apps):
+
+```
+1. Claude/DeepSeek defineix producte, UX i arquitectura
+        ↓
+2. Claude/DeepSeek genera un brief de UI (guiat per ui-ux-design.md)
+        ↓
+3. L'usuari genera el prompt amb: platform v0 <tipus> <projecte>
+        ↓
+4. L'usuari copia el prompt a v0.dev
+        ↓
+5. v0.dev genera la UI React/Tailwind/shadcn/ui
+        ↓
+6. L'usuari copia o exporta el codi al projecte
+        ↓
+7. Claude Code integra la UI amb backend, estat, rutes i dades reals
+        ↓
+8. Playwright o verificació manual valida el flux principal
+        ↓
+9. task-completion.md decideix si està completat
+```
+
+Principi: **v0.dev genera interfícies. Claude/DeepSeek integra producte real.**
+
+### Generar prompt per v0.dev
+
+```bash
+platform/scripts/platform.sh v0 landing-page <projecte>
+platform/scripts/platform.sh v0 saas-dashboard <projecte>
+platform/scripts/platform.sh v0 admin-panel <projecte>
+platform/scripts/platform.sh v0 app-shell <projecte>
+```
+
+El prompt inclou context del projecte (si existeix) i és llest per copiar a v0.dev.
+
+## Skills universals (8)
+
+| Skill | Funció |
+|-------|--------|
+| `product-architecture.md` | Disseny d'arquitectura, patrons, decisions estructurals |
+| `planning-and-execution.md` | Plans d'implementació, execució en passos, verificació |
+| `engineering-quality.md` | Qualitat de codi, simplicitat, decisions tècniques |
+| `testing-and-verification.md` | TDD, tests, verificació abans de completar |
+| `task-completion.md` | Criteri de completitud: implementat != verificat != completat |
+| `debugging.md` | Debugging sistemàtic, anàlisi d'errors |
+| `code-review.md` | Revisió de codi, feedback, millora contínua |
+| `ui-ux-design.md` | Disseny d'interfícies: pensar com a Product Designer abans de codificar |
+
+## Criteri de completitud
 
 Una tasca no es considera completada fins que:
 1. El codi està implementat.
@@ -94,3 +170,4 @@ Vegeu `skills/universal/task-completion.md` per al detall complet.
 4. Patterns abstractes, no codi copiat
 5. GitHub com a font de veritat
 6. Implementat != completat: verificar abans de declarar fet
+7. v0.dev genera interfícies, Claude/DeepSeek integra producte real

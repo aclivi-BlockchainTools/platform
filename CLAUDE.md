@@ -2,7 +2,8 @@
 
 ## On trobar les coses
 
-- `skills/universal/` — Skills sempre actives a tots els projectes (inclou `task-completion.md`: criteri de completitud)
+- `skills/universal/` — Skills sempre actives a tots els projectes (8 skills: product-architecture, planning-and-execution, engineering-quality, testing-and-verification, task-completion, debugging, code-review, ui-ux-design)
+- `prompts/v0/` — Prompts reutilitzables per generar UI premium amb v0.dev
 - `skills/domain/` — Skills de domini específiques (activació manual)
 - `patterns/` — Lliçons apreses abstractes
 - `templates/` — Plantilles per inicialitzar projectes
