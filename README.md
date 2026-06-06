@@ -157,7 +157,7 @@ platform models test      # Test de connexió als models
 platform models logs      # Logs de LiteLLM
 ```
 
-LiteLLM exposa Claude Sonnet, Claude Haiku, DeepSeek Chat i DeepSeek Reasoner via `http://127.0.0.1:4000`.
+LiteLLM exposa DeepSeek V4 Flash, DeepSeek V4 Pro, Claude Sonnet i Claude Haiku via `http://127.0.0.1:4000`.
 
 ### Test de models
 
@@ -169,28 +169,20 @@ Valida la connexió a cada model i mostra un resum.
 
 ## Model Routing
 
-**Frase guia: DeepSeek construeix. Claude revisa quan importa.**
+**Frase guia: DeepSeek construeix. Claude valida.**
 
-### Model per defecte: DeepSeek Chat
-
-Generació de codi, CRUDs, components, APIs, scripts, tests, refactors mecànics, implementacions llargues de risc baix/mitjà.
-
-### Raonament barat: DeepSeek Reasoner
-
-Debugging complex inicial, anàlisi de problemes, comparar alternatives, arquitectura preliminar.
-
-### Premium: Claude Sonnet
-
-Només quan aporti valor clar: decisions d'arquitectura, revisió pre-merge, refactors de risc alt, errors persistents, disseny UX crític, validació de seguretat.
-
-### Ràpid premium: Claude Haiku
-
-Resums, classificacions, petites revisions, quan es vol resposta Claude amb menys cost.
+| Model | Rol | Per a què |
+|-------|-----|-----------|
+| **DeepSeek V4 Flash** | Principal | CRUDs, APIs, components, scripts, tests, refactors, implementacions llargues |
+| **DeepSeek V4 Pro** | Raonament | Arquitectura preliminar, debugging, comparar alternatives, problemes difícils |
+| **Claude Sonnet** | Premium | Revisió, arquitectura crítica, seguretat, decisions importants |
+| **Claude Haiku** | Ràpid | Resums, classificacions, petites revisions |
 
 ### Principi de cost
 
-1. Intentar amb DeepSeek primer.
-2. Escalar a Claude si: risc alt, DeepSeek falla, cal judici arquitectònic, revisió premium, o l'usuari ho demana.
+1. DeepSeek V4 Flash per defecte (mínim cost).
+2. DeepSeek V4 Pro si cal raonament.
+3. Claude només per validació premium.
 
 ## Workflow UI premium
 

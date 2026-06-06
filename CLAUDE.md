@@ -12,62 +12,59 @@
 
 ## Model Routing
 
-### Model per defecte: DeepSeek Chat
+### DeepSeek V4 Flash
+
+Model principal. Minimitzar cost.
 
 Utilitzar per a:
 
-- Generació de codi normal
 - CRUDs
+- APIs
 - Components React
-- APIs Express
-- Scripts Bash/Node
-- Tests simples
-- Refactors mecànics
-- Implementacions llargues amb risc baix o mitjà
+- Scripts
+- Tests
+- Refactors
+- Tasques repetitives
+- Implementacions llargues
 
-### Model de raonament barat: DeepSeek Reasoner
+### DeepSeek V4 Pro
+
+Model de raonament.
 
 Utilitzar per a:
 
-- Debugging complex inicial
-- Anàlisi de problemes tècnics
-- Comparar alternatives
 - Arquitectura preliminar
-- Errors que requereixen pensar però encara no justifiquen Claude
+- Debugging
+- Comparació d'alternatives
+- Problemes difícils
+- Anàlisi de codi
 
-### Model premium: Claude Sonnet
+### Claude Sonnet
 
-Utilitzar només quan aporti valor clar:
+Només per a:
 
-- Decisions d'arquitectura importants
-- Revisió final abans de merge
-- Refactors grans amb risc alt
-- Entendre repos grans o confusos
-- Errors persistents que DeepSeek no resol
-- Disseny de producte/UX crític
-- Validació de seguretat o privacitat
-- Quan la tasca pot trencar producció
+- Revisió premium
+- Arquitectura crítica
+- Seguretat
+- Decisions importants
+- Problemes que DeepSeek no resol
 
-### Model ràpid premium: Claude Haiku
+### Claude Haiku
 
 Utilitzar per a:
 
 - Resums curts
 - Classificacions
 - Petites revisions
-- Quan es vol resposta Claude però amb menys cost que Sonnet
+- Quan es vol resposta Claude amb menys cost que Sonnet
 
 ### Principi de cost
 
-1. Primer intentar amb DeepSeek.
-2. Escalar a Claude només si:
-   - hi ha risc alt,
-   - DeepSeek falla,
-   - cal judici arquitectònic,
-   - cal revisió premium,
-   - o l'usuari ho demana explícitament.
+1. Primer intentar amb DeepSeek V4 Flash.
+2. Escalar a DeepSeek V4 Pro si cal raonament.
+3. Usar Claude només per a validació premium.
 
-**Frase guia:** DeepSeek construeix. Claude revisa quan importa.
+**Frase guia:** DeepSeek construeix. Claude valida.
 
 ## Airlock
 

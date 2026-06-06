@@ -12,14 +12,14 @@ model_list:
       model: claude-haiku-4-5-20251001
       api_key: ${ANTHROPIC_API_KEY}
 
-  - model_name: deepseek-chat
+  - model_name: deepseek-v4-flash
     litellm_params:
-      model: deepseek-chat
+      model: deepseek-v4-flash
       api_key: ${DEEPSEEK_API_KEY}
 
-  - model_name: deepseek-reasoner
+  - model_name: deepseek-v4-pro
     litellm_params:
-      model: deepseek-reasoner
+      model: deepseek-v4-pro
       api_key: ${DEEPSEEK_API_KEY}
 
 litellm_settings:

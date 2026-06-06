@@ -667,7 +667,7 @@ cmd_models() {
                     claude-sonnet|claude-haiku)
                         env_key="${ANTHROPIC_API_KEY:-}"
                         ;;
-                    deepseek-chat|deepseek-reasoner)
+                    deepseek-v4-flash|deepseek-v4-pro)
                         env_key="${DEEPSEEK_API_KEY:-}"
                         ;;
                 esac
@@ -695,8 +695,8 @@ cmd_models() {
                 fi
             }
 
-            test_model "deepseek-chat"      "deepseek-chat"
-            test_model "deepseek-reasoner"  "deepseek-reasoner"
+            test_model "deepseek-v4-flash"   "deepseek-v4-flash"
+            test_model "deepseek-v4-pro"     "deepseek-v4-pro"
             test_model "claude-haiku"       "claude-haiku"
             test_model "claude-sonnet"      "claude-sonnet"
 
