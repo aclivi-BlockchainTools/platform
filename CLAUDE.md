@@ -5,6 +5,7 @@
 - `skills/universal/` — Skills sempre actives a tots els projectes (8 skills: product-architecture, planning-and-execution, engineering-quality, testing-and-verification, task-completion, debugging, code-review, ui-ux-design)
 - `prompts/v0/` — Prompts reutilitzables per generar UI premium amb v0.dev
 - `skills/domain/` — Skills de domini específiques (activació manual)
+- `routing/` — Política de routing de models per tipus de tasca
 - `patterns/` — Lliçons apreses abstractes
 - `templates/` — Plantilles per inicialitzar projectes
 - `scripts/` — Eines d'inicialització i activació
@@ -12,59 +13,77 @@
 
 ## Model Routing
 
-### DeepSeek V4 Flash
+La plataforma està optimitzada per a desenvolupament de software: SaaS, React, Node.js, PostgreSQL, APIs, automatitzacions i repositoris grans.
 
-Model principal. Minimitzar cost.
+### DeepSeek V4 Pro — Model principal
+
+Model per defecte per al desenvolupament diari.
 
 Utilitzar per a:
 
+- Arquitectura
+- Implementació principal
+- Desenvolupament diari
+- APIs, Backend, Frontend
+- Refactors
+- Debugging
+- Disseny tècnic
+- Agents
+- Repositoris grans
+- Anàlisi de codi
+
+### DeepSeek V4 Flash — Model ràpid
+
+Per minimitzar cost. Utilitzar per a:
+
 - CRUDs
-- APIs
 - Components React
 - Scripts
 - Tests
-- Refactors
 - Tasques repetitives
-- Implementacions llargues
+- Modificacions petites
 
-### DeepSeek V4 Pro
+### Claude Sonnet — Model auditor
 
-Model de raonament.
+Consultor especialitzat. NO és el model principal.
 
-Utilitzar per a:
+Utilitzar només quan aporti valor clar:
 
-- Arquitectura preliminar
-- Debugging
-- Comparació d'alternatives
-- Problemes difícils
-- Anàlisi de codi
-
-### Claude Sonnet
-
-Només per a:
-
-- Revisió premium
-- Arquitectura crítica
+- Revisió crítica
 - Seguretat
-- Decisions importants
-- Problemes que DeepSeek no resol
+- Product thinking
+- UX complexa
+- Segona opinió arquitectònica
+- Problemes persistents que DeepSeek no resol
+- Auditories
+- Decisions d'alt impacte
 
 ### Claude Haiku
 
 Utilitzar per a:
 
-- Resums curts
-- Classificacions
-- Petites revisions
-- Quan es vol resposta Claude amb menys cost que Sonnet
+- Resums
+- Classificació
+- Consultes ràpides
+- Tasques lleugeres
 
-### Principi de cost
+### Model Strategy
 
-1. Primer intentar amb DeepSeek V4 Flash.
-2. Escalar a DeepSeek V4 Pro si cal raonament.
-3. Usar Claude només per a validació premium.
+```
+Model principal:  deepseek-v4-pro
+Model ràpid:      deepseek-v4-flash
+Model auditor:    claude-sonnet
+```
 
-**Frase guia:** DeepSeek construeix. Claude valida.
+Escalar a Claude només quan:
+
+- hi hagi risc alt
+- calgui revisió independent
+- calgui validar arquitectura
+- hi hagi requisits de seguretat
+- DeepSeek no resolgui el problema
+
+**Frase guia:** DeepSeek V4 Pro és el model principal de desenvolupament. Claude s'utilitza quan aporta una validació premium o una perspectiva diferent.
 
 ## Airlock
 

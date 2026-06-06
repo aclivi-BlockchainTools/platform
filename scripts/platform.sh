@@ -230,6 +230,13 @@ cmd_resume() {
     echo "  - Verificat:   $verificat"
     echo "  - Completat:   $completat"
 
+    # --- Model Strategy ---
+    echo ""
+    echo "Model Strategy:"
+    echo "  Principal:  deepseek-v4-pro"
+    echo "  Ràpid:      deepseek-v4-flash"
+    echo "  Auditor:    claude-sonnet"
+
     echo ""
 }
 
@@ -695,8 +702,8 @@ cmd_models() {
                 fi
             }
 
-            test_model "deepseek-v4-flash"   "deepseek-v4-flash"
             test_model "deepseek-v4-pro"     "deepseek-v4-pro"
+            test_model "deepseek-v4-flash"   "deepseek-v4-flash"
             test_model "claude-haiku"       "claude-haiku"
             test_model "claude-sonnet"      "claude-sonnet"
 

@@ -169,29 +169,45 @@ Valida la connexió a cada model i mostra un resum.
 
 ## Model Routing
 
-**Frase guia: DeepSeek construeix. Claude valida.**
+### Jerarquia de models
 
 | Model | Rol | Per a què |
 |-------|-----|-----------|
-| **DeepSeek V4 Flash** | Principal | CRUDs, APIs, components, scripts, tests, refactors, implementacions llargues |
-| **DeepSeek V4 Pro** | Raonament | Arquitectura preliminar, debugging, comparar alternatives, problemes difícils |
-| **Claude Sonnet** | Premium | Revisió, arquitectura crítica, seguretat, decisions importants |
-| **Claude Haiku** | Ràpid | Resums, classificacions, petites revisions |
+| **DeepSeek V4 Pro** | Principal | Arquitectura, backend, frontend, refactors, debugging, desenvolupament diari |
+| **DeepSeek V4 Flash** | Ràpid | CRUDs, components, scripts, tests, modificacions petites |
+| **Claude Sonnet** | Auditor | Revisió, seguretat, UX, segona opinió, auditories |
+| **Claude Haiku** | Lleuger | Resums, classificació, consultes ràpides |
 
-### Principi de cost
+### Model Strategy
 
-1. DeepSeek V4 Flash per defecte (mínim cost).
-2. DeepSeek V4 Pro si cal raonament.
-3. Claude només per validació premium.
+```
+Model principal:  deepseek-v4-pro
+Model ràpid:      deepseek-v4-flash
+Model auditor:    claude-sonnet
+```
+
+Escalar a Claude només quan: risc alt, calgui revisió independent, validació d'arquitectura, seguretat, o DeepSeek no resolgui el problema.
+
+## Filosofia de costos
+
+Maximitzar qualitat per euro invertit.
+
+Estratègia recomanada:
+
+- **70-80% DeepSeek V4 Pro** — desenvolupament principal
+- **15-25% DeepSeek V4 Flash** — tasques simples i repetitives
+- **5-10% Claude Sonnet** — auditories i revisions crítiques
+
+Claude s'utilitza quan el seu valor afegit justifica el cost.
 
 ## Workflow UI premium
 
 Per a interfícies importants (dashboards, landing pages, apps):
 
 ```
-1. Claude/DeepSeek defineix producte, UX i arquitectura
+1. DeepSeek V4 Pro defineix producte, UX i arquitectura
         ↓
-2. Claude/DeepSeek genera un brief de UI (guiat per ui-ux-design.md)
+2. DeepSeek V4 Pro genera un brief de UI (guiat per ui-ux-design.md)
         ↓
 3. L'usuari genera el prompt amb: platform v0 <tipus> <projecte>
         ↓
@@ -201,14 +217,14 @@ Per a interfícies importants (dashboards, landing pages, apps):
         ↓
 6. L'usuari copia o exporta el codi al projecte
         ↓
-7. Claude Code integra la UI amb backend, estat, rutes i dades reals
+7. Claude Code / DeepSeek V4 Pro integra la UI amb backend, estat, rutes i dades reals
         ↓
 8. Playwright o verificació manual valida el flux principal
         ↓
 9. task-completion.md decideix si està completat
 ```
 
-Principi: **v0.dev genera interfícies. Claude/DeepSeek integra producte real.**
+Principi: **v0.dev genera interfícies. DeepSeek V4 Pro + Claude Code integren producte real.**
 
 ### Generar prompt per v0.dev
 
@@ -252,4 +268,4 @@ Vegeu `skills/universal/task-completion.md` per al detall complet.
 4. Patterns abstractes, no codi copiat
 5. GitHub com a font de veritat
 6. Implementat != completat: verificar abans de declarar fet
-7. v0.dev genera interfícies, Claude/DeepSeek integra producte real
+7. v0.dev genera interfícies, DeepSeek V4 Pro + Claude Code integren producte real

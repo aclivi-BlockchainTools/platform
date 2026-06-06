@@ -28,6 +28,25 @@
 ### Decisions inferides (pendent validació)
 <!-- Per omplir amb Claude. L'usuari les valida. -->
 
+## Model Strategy
+
+Model principal:
+deepseek-v4-pro
+
+Model ràpid:
+deepseek-v4-flash
+
+Model auditor:
+claude-sonnet
+
+Escalar a Claude només quan:
+
+- hi hagi risc alt
+- calgui revisió independent
+- calgui validar arquitectura
+- hi hagi requisits de seguretat
+- DeepSeek no resolgui el problema
+
 ## Skills de domini actives
 <!-- skill (activat el YYYY-MM-DD) -->
 
