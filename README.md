@@ -42,6 +42,7 @@ platform/scripts/platform.sh status <nom>
 platform/scripts/platform.sh skills <nom>
 platform/scripts/platform.sh activate <skill> <projecte>
 platform/scripts/platform.sh v0 <tipus> [projecte]
+platform/scripts/platform.sh resume <nom>
 platform/scripts/platform.sh skills --list
 ```
 
@@ -94,13 +95,23 @@ platform/scripts/platform.sh status <projecte>
 
 Mostra: stack, skills actives, última decisió, estat actual.
 
-### Reprendre treball
+### Reprendre un projecte
 
 ```bash
-platform/scripts/platform.sh open <projecte>
+platform/scripts/platform.sh resume <projecte>
 ```
 
-Mostra: skills actives, última decisió, pròxim pas.
+Mostra una vista completa per continuar treballant:
+
+- Projecte i ruta
+- Stack detectat
+- Skills actives
+- Estat actual (resumit)
+- Pròxim pas
+- Última decisió (de `docs/decisions/`)
+- Criteri de completitud (Implementat / Verificat / Completat)
+
+No modifica cap fitxer. Només llegeix i mostra.
 
 ## Workflow UI premium
 

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # platform.sh — Eina principal de la plataforma de desenvolupament assistit per IA
-# Ús: platform.sh [new|import|open|status|skills|activate|v0] [args...]
+# Ús: platform.sh [new|import|open|status|skills|activate|v0|resume] [args...]
 
 PLATFORM_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PROJECTS_DIR="${PROJECTS_DIR:-$HOME/Projects}"
@@ -26,7 +26,8 @@ show_menu() {
     echo "  6. Activar skill         platform activate <skill> <projecte>"
     echo "  7. Llistar skills        platform skills --list"
     echo "  8. Prompt v0.dev         platform v0 <tipus> <projecte>"
-    echo "  9. Sortir"
+    echo "  9. Reprendre projecte    platform resume <nom>"
+    echo " 10. Sortir"
     echo ""
 }
 
@@ -130,6 +131,149 @@ cmd_open() {
 
     echo ""
     echo "Directori: $project_dir"
+}
+
+cmd_resume() {
+    local name="$1"
+    local project_dir="$PROJECTS_DIR/$name"
+    local claude_md="$project_dir/.claude/CLAUDE.md"
+
+    if [ ! -d "$project_dir" ]; then
+        echo "ERROR: El projecte '$name' no existeix a $PROJECTS_DIR/"
+        exit 1
+    fi
+
+    echo ""
+    echo "================================================"
+    echo "  REPRENDRE PROJECTE"
+    echo "================================================"
+    echo ""
+    echo "Projecte:   $name"
+    echo "Ruta:       $project_dir"
+    echo ""
+
+    # --- Stack ---
+    echo "Stack:"
+    if [ -f "$claude_md" ] && grep -q "AUTO-GENERATED-STACK-START" "$claude_md" 2>/dev/null; then
+        sed -n '/AUTO-GENERATED-STACK-START/,/AUTO-GENERATED-STACK-END/p' "$claude_md" \
+            | grep '^- ' | sed 's/^- /  - /'
+        echo ""
+    else
+        echo "  No disponible"
+        echo ""
+    fi
+
+    # --- Skills actives ---
+    echo "Skills actives:"
+    local domain_dir="$project_dir/.claude/active-skills/domain"
+    local found_skills=false
+    if [ -d "$domain_dir" ]; then
+        for item in "$domain_dir"/*; do
+            if [ -L "$item" ] || [ -d "$item" ]; then
+                local skill_name
+                skill_name=$(basename "$item")
+                if [ "$skill_name" != ".gitkeep" ]; then
+                    echo "  - $skill_name"
+                    found_skills=true
+                fi
+            fi
+        done
+    fi
+    if [ "$found_skills" = false ]; then
+        echo "  Cap"
+    fi
+    echo ""
+
+    # --- Estat actual ---
+    echo "Estat actual:"
+    if [ -f "$claude_md" ]; then
+        local status_section
+        status_section=$(sed -n '/## Estat actual/,/^## /p' "$claude_md" 2>/dev/null | grep -v '^## ' | grep -v '^<!--' | grep -v '^$' | head -5 || echo "")
+        if [ -n "$status_section" ]; then
+            echo "$status_section" | while IFS= read -r line; do
+                echo "  $line"
+            done
+        else
+            echo "  No disponible"
+        fi
+    else
+        echo "  No disponible"
+    fi
+    echo ""
+
+    # --- Pròxim pas (extret d'Estat actual) ---
+    echo "Pròxim pas:"
+    if [ -f "$claude_md" ]; then
+        local next_step
+        next_step=$(sed -n '/## Estat actual/,/^## /p' "$claude_md" 2>/dev/null | grep -v '^## ' | grep -v '^<!--' | grep -v '^$' | grep -iE 'pròxim|proper|següent|next|pending|qued|pendent' | head -1 | sed 's/^[[:space:]]*//' || echo "")
+        if [ -n "$next_step" ]; then
+            echo "  $next_step"
+        else
+            echo "  No disponible"
+        fi
+    else
+        echo "  No disponible"
+    fi
+    echo ""
+
+    # --- Última decisió (de docs/decisions/) ---
+    echo "Última decisió:"
+    local decisions_dir="$project_dir/docs/decisions"
+    if [ -d "$decisions_dir" ] && [ -n "$(ls -A "$decisions_dir" 2>/dev/null)" ]; then
+        local last_decision_file
+        last_decision_file=$(ls -1t "$decisions_dir"/*.md 2>/dev/null | head -1)
+        if [ -n "$last_decision_file" ]; then
+            local title
+            title=$(head -5 "$last_decision_file" | grep -E '^# ' | head -1 | sed 's/^# //')
+            if [ -n "$title" ]; then
+                echo "  $title"
+                echo "  ($(basename "$last_decision_file"))"
+            else
+                echo "  $(basename "$last_decision_file")"
+            fi
+        else
+            echo "  No disponible"
+        fi
+    else
+        echo "  No disponible"
+    fi
+    echo ""
+
+    # --- Criteri de completitud ---
+    echo "Criteri de completitud:"
+
+    local implementat="no disponible"
+    local verificat="no disponible"
+    local completat="no disponible"
+
+    if [ -f "$claude_md" ]; then
+        local status_text
+        status_text=$(sed -n '/## Estat actual/,/^## /p' "$claude_md" 2>/dev/null || echo "")
+
+        if echo "$status_text" | grep -qi 'implementat[: ]*sí\|implementat[: ]*si\b'; then
+            implementat="sí"
+        elif echo "$status_text" | grep -qi 'implementat[: ]*no\b'; then
+            implementat="no"
+        fi
+
+        if echo "$status_text" | grep -qi 'verificat[: ]*sí\|verificat[: ]*si\b'; then
+            verificat="sí"
+        elif echo "$status_text" | grep -qi 'verificat[: ]*no\b'; then
+            verificat="no"
+        fi
+
+        if echo "$status_text" | grep -qi 'completat[: ]*sí\|completat[: ]*si\b'; then
+            completat="sí"
+        elif echo "$status_text" | grep -qi 'completat[: ]*no\b'; then
+            completat="no"
+        fi
+    fi
+
+    echo "  - Implementat: $implementat"
+    echo "  - Verificat:   $verificat"
+    echo "  - Completat:   $completat"
+
+    echo ""
 }
 
 cmd_status() {
@@ -320,7 +464,7 @@ cmd_v0() {
 
 if [ $# -eq 0 ]; then
     show_menu
-    read -p "  Tria una opció (1-9): " choice
+    read -p "  Tria una opció (1-10): " choice
     echo ""
     case "$choice" in
         1)
@@ -362,6 +506,10 @@ if [ $# -eq 0 ]; then
             fi
             ;;
         9)
+            read -p "  Nom del projecte: " pname
+            cmd_resume "$pname"
+            ;;
+        10)
             echo "  Fins aviat."
             exit 0
             ;;
@@ -400,6 +548,14 @@ else
         v0)
             shift
             cmd_v0 "$@"
+            ;;
+        resume)
+            shift
+            if [ $# -lt 1 ]; then
+                echo "Ús: platform resume <projecte>"
+                exit 1
+            fi
+            cmd_resume "$1"
             ;;
         help|--help|-h)
             show_menu
