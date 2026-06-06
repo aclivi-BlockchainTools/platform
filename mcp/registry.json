@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "context7": {
+      "description": "Documentació actualitzada de llibreries i frameworks",
+      "plugin": "context7@claude-plugins-official",
+      "category": "development",
+      "alwaysEnabled": true
+    },
+    "playwright": {
+      "description": "Automatització de navegador per testing i screenshots",
+      "plugin": "playwright@claude-plugins-official",
+      "category": "testing",
+      "alwaysEnabled": false
+    },
+    "github": {
+      "description": "Integració amb GitHub: issues, PRs, repos",
+      "plugin": "github@claude-plugins-official",
+      "category": "development",
+      "alwaysEnabled": false
+    },
+    "supabase": {
+      "description": "Integració amb Supabase",
+      "plugin": "supabase@claude-plugins-official",
+      "category": "infrastructure",
+      "alwaysEnabled": false
+    },
+    "wordpress": {
+      "description": "Integració amb WordPress.com",
+      "plugin": "wordpress.com@claude-plugins-official",
+      "category": "domain",
+      "alwaysEnabled": false,
+      "requiresSkill": "wordpress"
+    }
+  }
+}
