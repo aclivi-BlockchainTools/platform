@@ -1,0 +1,27 @@
+general_settings:
+  master_key: ${LITELLM_MASTER_KEY}
+
+model_list:
+  - model_name: claude-sonnet
+    litellm_params:
+      model: claude-sonnet-4-6
+      api_key: ${ANTHROPIC_API_KEY}
+
+  - model_name: claude-haiku
+    litellm_params:
+      model: claude-haiku-4-5-20251001
+      api_key: ${ANTHROPIC_API_KEY}
+
+  - model_name: deepseek-chat
+    litellm_params:
+      model: deepseek-chat
+      api_key: ${DEEPSEEK_API_KEY}
+
+  - model_name: deepseek-reasoner
+    litellm_params:
+      model: deepseek-reasoner
+      api_key: ${DEEPSEEK_API_KEY}
+
+litellm_settings:
+  drop_params: true
+  set_verbose: false

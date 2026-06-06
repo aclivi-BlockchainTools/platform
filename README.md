@@ -6,6 +6,17 @@ Plataforma personal de desenvolupament assistit per IA.
 
 La plataforma existeix per augmentar la qualitat de les decisions, no per reduir la creativitat.
 
+## Instal·lació ràpida
+
+```bash
+git clone https://github.com/aclivi-BlockchainTools/platform.git ~/platform
+cd ~/platform
+bash scripts/install.sh
+platform config
+platform doctor
+platform models start
+```
+
 ## Què és
 
 Font de veritat central de skills, templates, patterns i scripts per a tots els projectes a `$HOME/Projects/`.
@@ -20,8 +31,9 @@ platform/
 ├── prompts/v0/        ← Prompts per v0.dev (UI premium)
 ├── templates/         ← Plantilles per nous projectes i existents
 ├── patterns/          ← Lliçons apreses abstractes
+├── litellm/           ← Configuració LiteLLM (Docker, models Claude + DeepSeek)
 ├── mcp/               ← Catàleg i configuracions de MCPs
-└── scripts/           ← Eines d'inicialització i activació
+└── scripts/           ← Eines d'inicialització, instal·lació i activació
 ```
 
 ## Workflow diari
@@ -43,6 +55,10 @@ platform/scripts/platform.sh skills <nom>
 platform/scripts/platform.sh activate <skill> <projecte>
 platform/scripts/platform.sh v0 <tipus> [projecte]
 platform/scripts/platform.sh resume <nom>
+platform/scripts/platform.sh config
+platform/scripts/platform.sh doctor
+platform/scripts/platform.sh models start
+platform/scripts/platform.sh models status
 platform/scripts/platform.sh skills --list
 ```
 
@@ -112,6 +128,35 @@ Mostra una vista completa per continuar treballant:
 - Criteri de completitud (Implementat / Verificat / Completat)
 
 No modifica cap fitxer. Només llegeix i mostra.
+
+### Configurar la plataforma
+
+```bash
+platform config
+```
+
+- Crea o mostra `~/.platform/.env`.
+- Indica quines claus API falten (Anthropic, DeepSeek).
+- No mostra mai les claus senceres.
+
+### Verificar l'estat del sistema
+
+```bash
+platform doctor
+```
+
+Comprova: platform, PATH, PROJECTS_DIR, Claude Code, Docker, Docker Compose, LiteLLM, claus API, GitHub CLI.
+
+### Gestionar models (LiteLLM)
+
+```bash
+platform models start     # Arrencar LiteLLM
+platform models stop      # Aturar LiteLLM
+platform models status    # Estat de LiteLLM
+platform models logs      # Logs de LiteLLM
+```
+
+LiteLLM exposa Claude Sonnet, Claude Haiku, DeepSeek Chat i DeepSeek Reasoner via `http://127.0.0.1:4000`.
 
 ## Workflow UI premium
 

@@ -1,0 +1,12 @@
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: platform-litellm
+    ports:
+      - "${LITELLM_HOST:-127.0.0.1}:${LITELLM_PORT:-4000}:4000"
+    env_file:
+      - ${PLATFORM_DIR:-$HOME/platform}/litellm/.env
+    volumes:
+      - ${PLATFORM_DIR:-$HOME/platform}/litellm/config.yaml:/app/config.yaml
+    command: ["--config", "/app/config.yaml"]
+    restart: unless-stopped

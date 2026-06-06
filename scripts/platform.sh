@@ -7,6 +7,15 @@ set -euo pipefail
 PLATFORM_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PROJECTS_DIR="${PROJECTS_DIR:-$HOME/Projects}"
 SCRIPTS_DIR="$PLATFORM_DIR/scripts"
+PLATFORM_CONFIG_DIR="$HOME/.platform"
+
+# Carregar configuració d'entorn si existeix
+if [ -f "$PLATFORM_CONFIG_DIR/.env" ]; then
+    set -a
+    source "$PLATFORM_CONFIG_DIR/.env"
+    set +a
+    PROJECTS_DIR="${PROJECTS_DIR:-$HOME/Projects}"
+fi
 
 # ============================================================
 # Funcions d'ajuda
@@ -27,7 +36,10 @@ show_menu() {
     echo "  7. Llistar skills        platform skills --list"
     echo "  8. Prompt v0.dev         platform v0 <tipus> <projecte>"
     echo "  9. Reprendre projecte    platform resume <nom>"
-    echo " 10. Sortir"
+    echo " 10. Configuració          platform config"
+    echo " 11. Doctor                platform doctor"
+    echo " 12. Models start/stop     platform models <start|stop|status>"
+    echo " 13. Sortir"
     echo ""
 }
 
@@ -459,12 +471,255 @@ cmd_v0() {
 }
 
 # ============================================================
+# Sistema i models
+# ============================================================
+
+cmd_config() {
+    local env_file="$PLATFORM_CONFIG_DIR/.env"
+
+    if [ ! -f "$env_file" ]; then
+        echo "Creant ~/.platform/.env des de la plantilla..."
+        mkdir -p "$PLATFORM_CONFIG_DIR"
+        cp "$PLATFORM_DIR/.env.example" "$env_file"
+        echo "Fitxer creat: $env_file"
+    fi
+
+    echo ""
+    echo "=== CONFIGURACIÓ ==="
+    echo ""
+    echo "Fitxer: $env_file"
+    echo ""
+
+    local missing=false
+
+    check_key() {
+        local key="$1"
+        local desc="$2"
+        local val
+        val=$(grep -E "^${key}=" "$env_file" 2>/dev/null | cut -d= -f2- || echo "")
+
+        if [ -z "$val" ] || [ "$val" = '""' ] || [ "$val" = "''" ]; then
+            echo "  [✗] $desc — PENDENT"
+            missing=true
+        else
+            # Mostrar només primers i últims caràcters
+            local masked
+            if [ ${#val} -gt 8 ]; then
+                masked="${val:0:4}...${val: -4}"
+            else
+                masked="****"
+            fi
+            echo "  [✓] $desc — $masked"
+        fi
+    }
+
+    check_key "ANTHROPIC_API_KEY"  "Anthropic API Key"
+    check_key "DEEPSEEK_API_KEY"   "DeepSeek API Key"
+    check_key "LITELLM_MASTER_KEY" "LiteLLM Master Key"
+    check_key "LITELLM_HOST"       "LiteLLM Host"
+    check_key "LITELLM_PORT"       "LiteLLM Port"
+    check_key "PROJECTS_DIR"       "Directori de projectes"
+    check_key "PLATFORM_DIR"       "Directori de la plataforma"
+
+    echo ""
+    if [ "$missing" = true ]; then
+        echo "Claus pendents. Edita el fitxer:"
+        echo "  $env_file"
+        echo ""
+        echo "O executa: nano $env_file"
+    else
+        echo "Totes les claus configurades."
+    fi
+    echo ""
+}
+
+cmd_doctor() {
+    echo ""
+    echo "================================================"
+    echo "  DOCTOR"
+    echo "================================================"
+    echo ""
+
+    local ok=true
+    local warn=false
+
+    check_ok() {
+        echo "  [✓] $1"
+    }
+
+    check_warn() {
+        echo "  [!] $1"
+        warn=true
+    }
+
+    check_fail() {
+        echo "  [✗] $1"
+        ok=false
+    }
+
+    # Platform instal·lat
+    if [ -L "$HOME/.local/bin/platform" ] || [ -f "$HOME/.local/bin/platform" ]; then
+        check_ok "platform al PATH (~/.local/bin/platform)"
+    else
+        check_warn "platform no enllaçat a ~/.local/bin/platform"
+    fi
+
+    # PATH
+    if echo "$PATH" | grep -q "$HOME/.local/bin"; then
+        check_ok "~/.local/bin al PATH"
+    else
+        check_warn "~/.local/bin no és al PATH"
+    fi
+
+    # PROJECTS_DIR
+    if [ -d "$PROJECTS_DIR" ]; then
+        check_ok "PROJECTS_DIR: $PROJECTS_DIR"
+    else
+        check_warn "PROJECTS_DIR no existeix: $PROJECTS_DIR"
+    fi
+
+    # Claude Code
+    if command -v claude &> /dev/null; then
+        check_ok "Claude Code instal·lat"
+    else
+        check_warn "Claude Code no instal·lat"
+    fi
+
+    # Docker
+    if command -v docker &> /dev/null; then
+        if docker info &> /dev/null 2>&1; then
+            check_ok "Docker funciona"
+        else
+            check_warn "Docker instal·lat però no respon (potser necessites permisos)"
+        fi
+    else
+        check_warn "Docker no instal·lat"
+    fi
+
+    # Docker Compose
+    if docker compose version &> /dev/null 2>&1 || command -v docker-compose &> /dev/null; then
+        check_ok "Docker Compose disponible"
+    else
+        check_warn "Docker Compose no disponible"
+    fi
+
+    # LiteLLM config
+    local litellm_env="$PLATFORM_DIR/litellm/.env"
+    if [ -f "$litellm_env" ]; then
+        check_ok "LiteLLM .env existeix"
+    else
+        check_warn "LiteLLM .env no existeix. Copia litellm/.env.example → litellm/.env"
+    fi
+
+    if [ -f "$PLATFORM_DIR/litellm/config.yaml" ]; then
+        check_ok "LiteLLM config.yaml existeix"
+    else
+        check_fail "LiteLLM config.yaml no existeix"
+    fi
+
+    # API keys
+    local platform_env="$PLATFORM_CONFIG_DIR/.env"
+    if [ -f "$platform_env" ]; then
+        local anthropic_key
+        anthropic_key=$(grep -E '^ANTHROPIC_API_KEY=' "$platform_env" 2>/dev/null | cut -d= -f2- || echo "")
+        if [ -n "$anthropic_key" ] && [ "$anthropic_key" != '""' ] && [ "$anthropic_key" != "''" ]; then
+            check_ok "ANTHROPIC_API_KEY configurada"
+        else
+            check_warn "ANTHROPIC_API_KEY pendent"
+        fi
+
+        local deepseek_key
+        deepseek_key=$(grep -E '^DEEPSEEK_API_KEY=' "$platform_env" 2>/dev/null | cut -d= -f2- || echo "")
+        if [ -n "$deepseek_key" ] && [ "$deepseek_key" != '""' ] && [ "$deepseek_key" != "''" ]; then
+            check_ok "DEEPSEEK_API_KEY configurada"
+        else
+            check_warn "DEEPSEEK_API_KEY pendent"
+        fi
+    else
+        check_warn "~/.platform/.env no existeix. Executa: platform config"
+    fi
+
+    # gh
+    if command -v gh &> /dev/null; then
+        if gh auth status &> /dev/null 2>&1; then
+            check_ok "GitHub CLI autenticat"
+        else
+            check_warn "GitHub CLI instal·lat però no autenticat. Executa: gh auth login"
+        fi
+    else
+        check_warn "GitHub CLI no instal·lat"
+    fi
+
+    echo ""
+    if [ "$ok" = true ] && [ "$warn" = false ]; then
+        echo "Tot correcte."
+    elif [ "$ok" = true ]; then
+        echo "Algunes comprovacions opcionals pendents (marcades amb [!])."
+    else
+        echo "Hi ha errors que cal resoldre (marcats amb [✗])."
+    fi
+    echo ""
+}
+
+cmd_models() {
+    local action="${1:-}"
+    local litellm_dir="$PLATFORM_DIR/litellm"
+    local compose_file="$litellm_dir/docker-compose.yml"
+    local container_name="platform-litellm"
+
+    if [ ! -f "$compose_file" ]; then
+        echo "ERROR: No es troba $compose_file"
+        exit 1
+    fi
+
+    case "$action" in
+        start)
+            echo "Arrencant LiteLLM..."
+            cd "$litellm_dir"
+            docker compose up -d
+            echo ""
+            echo "LiteLLM arrencat a http://${LITELLM_HOST:-127.0.0.1}:${LITELLM_PORT:-4000}"
+            echo "Comprova amb: platform models status"
+            ;;
+        stop)
+            echo "Aturant LiteLLM..."
+            cd "$litellm_dir"
+            docker compose down
+            echo "LiteLLM aturat."
+            ;;
+        status)
+            if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${container_name}$"; then
+                echo "LiteLLM actiu a http://${LITELLM_HOST:-127.0.0.1}:${LITELLM_PORT:-4000}"
+                echo ""
+                docker ps --filter "name=${container_name}" --format "  ID: {{.ID}} | Estat: {{.Status}} | Ports: {{.Ports}}"
+            else
+                echo "LiteLLM no està actiu."
+                echo "Arrenca'l amb: platform models start"
+            fi
+            ;;
+        logs)
+            echo "Mostrant logs de LiteLLM (Ctrl+C per sortir)..."
+            cd "$litellm_dir"
+            docker compose logs -f --tail=50 2>/dev/null || echo "No s'han pogut recuperar els logs. LiteLLM està actiu?"
+            ;;
+        *)
+            echo "Ús: platform models <start|stop|status|logs>"
+            echo ""
+            echo "  start   Arrencar LiteLLM"
+            echo "  stop    Aturar LiteLLM"
+            echo "  status  Estat de LiteLLM"
+            echo "  logs    Logs de LiteLLM"
+            ;;
+    esac
+}
+
+# ============================================================
 # Punt d'entrada
 # ============================================================
 
 if [ $# -eq 0 ]; then
     show_menu
-    read -p "  Tria una opció (1-10): " choice
+    read -p "  Tria una opció (1-13): " choice
     echo ""
     case "$choice" in
         1)
@@ -510,6 +765,17 @@ if [ $# -eq 0 ]; then
             cmd_resume "$pname"
             ;;
         10)
+            cmd_config
+            ;;
+        11)
+            cmd_doctor
+            ;;
+        12)
+            echo "  Accions: start | stop | status | logs"
+            read -p "  Acció: " maction
+            cmd_models "$maction"
+            ;;
+        13)
             echo "  Fins aviat."
             exit 0
             ;;
@@ -556,6 +822,16 @@ else
                 exit 1
             fi
             cmd_resume "$1"
+            ;;
+        config)
+            cmd_config
+            ;;
+        doctor)
+            cmd_doctor
+            ;;
+        models)
+            shift
+            cmd_models "${1:-}"
             ;;
         help|--help|-h)
             show_menu
