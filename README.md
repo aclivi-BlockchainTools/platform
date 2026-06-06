@@ -2,9 +2,13 @@
 
 Plataforma personal de desenvolupament assistit per IA.
 
+## Principi 0
+
+La plataforma existeix per augmentar la qualitat de les decisions, no per reduir la creativitat.
+
 ## Què és
 
-Font de veritat central de skills, templates, patterns i scripts per a tots els projectes a `/home/usuari/Projects/`.
+Font de veritat central de skills, templates, patterns i scripts per a tots els projectes a `$HOME/Projects/`.
 
 ## Estructura
 
@@ -19,31 +23,47 @@ platform/
 └── scripts/           ← Eines d'inicialització i activació
 ```
 
-## Ús ràpid
+## Workflow diari
 
-### Projecte nou
+### Crear un projecte nou
 
 ```bash
 platform/scripts/init-new-project.sh <nom>
 ```
 
-### Projecte existent
+- Requereix `gh` (GitHub CLI) instal·lat i autenticat.
+- Crea un repo privat a GitHub, clona, aplica la plantilla i fa commit inicial.
+- Deixa `.claude/active-skills/domain/` buit (les skills de domini s'activen manualment).
+
+### Adaptar un projecte existent
 
 ```bash
 platform/scripts/init-existing-project.sh <nom>
 ```
 
-### Activar skill de domini
+- Detecta l'stack automàticament amb nivells de confiança (alta/mitjana/baixa).
+- No sobreescriu `.claude/CLAUDE.md` existent — si ja hi és, només afegeix directoris que faltin.
+- Si no hi ha skills de domini, ho indica sense fallar.
+
+### Activar una skill de domini
 
 ```bash
 platform/scripts/activate-skill.sh <skill> <projecte>
 ```
 
-### Suggerir skills
+- Crea un symlink a `.claude/active-skills/domain/<skill>`.
+- Anota l'activació al CLAUDE.md sota `## Skills de domini actives`.
+- Evita duplicats: si la skill ja hi és, no l'afegeix dos cops.
+
+### Suggerir skills per a un projecte
 
 ```bash
 platform/scripts/suggest-skills.sh <projecte>
 ```
+
+- Analitza el projecte amb detecció dirigida (no escaneja recursivament).
+- Mostra cada skill suggerida amb confiança (alta/mitjana/baixa) i motiu.
+- No activa res automàticament — l'usuari decideix.
 
 ## Principis
 
