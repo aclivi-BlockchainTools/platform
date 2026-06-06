@@ -169,14 +169,28 @@ Valida la connexió a cada model i mostra un resum.
 
 ## Model Routing
 
-**Principi: Claude decideix. DeepSeek implementa.**
+**Frase guia: DeepSeek construeix. Claude revisa quan importa.**
 
-| Model | Per a què |
-|-------|-----------|
-| **Claude Sonnet** | Arquitectura, disseny, decisions, refactors, code review, planificació |
-| **Claude Haiku** | Consultes ràpides, tasques simples, resums |
-| **DeepSeek Chat** | Generació de codi, CRUDs, APIs, components, scripts, tasques repetitives |
-| **DeepSeek Reasoner** | Debugging complex, algoritmes, investigació, errors persistents |
+### Model per defecte: DeepSeek Chat
+
+Generació de codi, CRUDs, components, APIs, scripts, tests, refactors mecànics, implementacions llargues de risc baix/mitjà.
+
+### Raonament barat: DeepSeek Reasoner
+
+Debugging complex inicial, anàlisi de problemes, comparar alternatives, arquitectura preliminar.
+
+### Premium: Claude Sonnet
+
+Només quan aporti valor clar: decisions d'arquitectura, revisió pre-merge, refactors de risc alt, errors persistents, disseny UX crític, validació de seguretat.
+
+### Ràpid premium: Claude Haiku
+
+Resums, classificacions, petites revisions, quan es vol resposta Claude amb menys cost.
+
+### Principi de cost
+
+1. Intentar amb DeepSeek primer.
+2. Escalar a Claude si: risc alt, DeepSeek falla, cal judici arquitectònic, revisió premium, o l'usuari ho demana.
 
 ## Workflow UI premium
 

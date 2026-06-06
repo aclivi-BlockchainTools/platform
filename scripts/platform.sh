@@ -695,10 +695,10 @@ cmd_models() {
                 fi
             }
 
-            test_model "claude-sonnet"      "claude-sonnet"
-            test_model "claude-haiku"       "claude-haiku"
             test_model "deepseek-chat"      "deepseek-chat"
             test_model "deepseek-reasoner"  "deepseek-reasoner"
+            test_model "claude-haiku"       "claude-haiku"
+            test_model "claude-sonnet"      "claude-sonnet"
 
             echo ""
             if [ "$errors" -eq 0 ]; then
