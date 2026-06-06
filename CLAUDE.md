@@ -10,6 +10,53 @@
 - `scripts/` — Eines d'inicialització i activació
 - `mcp/registry.json` — Catàleg de MCPs disponibles
 
+## Model Routing
+
+La plataforma exposa 4 models via LiteLLM. Utilitzar cada model segons el tipus de tasca.
+
+### Claude Sonnet (claude-sonnet-4-6)
+
+Utilitzar per a:
+
+- Arquitectura i disseny de producte
+- Decisions complexes
+- Refactors grans
+- Revisió de codi
+- Coordinació global del projecte
+- Planificació
+
+### Claude Haiku (claude-haiku-4-5)
+
+Utilitzar per a:
+
+- Consultes ràpides
+- Tasques simples
+- Resums
+- Petites modificacions
+
+### DeepSeek Chat
+
+Utilitzar per a:
+
+- Generació de codi
+- CRUDs
+- APIs
+- Components React
+- Scripts
+- Tasques repetitives
+
+### DeepSeek Reasoner
+
+Utilitzar per a:
+
+- Debugging complex
+- Algoritmes
+- Investigació de problemes difícils
+- Anàlisi profunda
+- Resolució d'errors persistents
+
+**Principi:** Claude decideix. DeepSeek implementa.
+
 ## Airlock
 
 - No activar mai una skill de domini automàticament.

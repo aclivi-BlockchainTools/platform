@@ -10,12 +10,15 @@ SCRIPTS_DIR="$PLATFORM_DIR/scripts"
 PLATFORM_CONFIG_DIR="$HOME/.platform"
 
 # Carregar configuració d'entorn si existeix
+# Guardar valor original per si ve de l'entorn (prioritat més alta)
+_ORIG_PROJECTS_DIR="${PROJECTS_DIR:-}"
 if [ -f "$PLATFORM_CONFIG_DIR/.env" ]; then
     set -a
     source "$PLATFORM_CONFIG_DIR/.env"
     set +a
-    PROJECTS_DIR="${PROJECTS_DIR:-$HOME/Projects}"
 fi
+# L'entorn sobrescrit té prioritat sobre el fitxer .env
+PROJECTS_DIR="${_ORIG_PROJECTS_DIR:-${PROJECTS_DIR:-$HOME/Projects}}"
 
 # ============================================================
 # Funcions d'ajuda
@@ -38,7 +41,7 @@ show_menu() {
     echo "  9. Reprendre projecte    platform resume <nom>"
     echo " 10. Configuració          platform config"
     echo " 11. Doctor                platform doctor"
-    echo " 12. Models start/stop     platform models <start|stop|status>"
+    echo " 12. Models                platform models <start|stop|status|test>"
     echo " 13. Sortir"
     echo ""
 }
@@ -83,66 +86,8 @@ cmd_import() {
 }
 
 cmd_open() {
-    local name="$1"
-    local project_dir="$PROJECTS_DIR/$name"
-    local claude_md="$project_dir/.claude/CLAUDE.md"
-
-    if [ ! -d "$project_dir" ]; then
-        echo "ERROR: El projecte '$name' no existeix a $PROJECTS_DIR/"
-        exit 1
-    fi
-
-    echo ""
-    echo "=== $name ==="
-    echo ""
-
-    # Skills actives
-    echo "Skills actives:"
-    local domain_dir="$project_dir/.claude/active-skills/domain"
-    if [ -d "$domain_dir" ] && [ -n "$(ls -A "$domain_dir" 2>/dev/null)" ]; then
-        for d in "$domain_dir"/*/; do
-            [ -d "$d" ] && echo "  - $(basename "$d")"
-        done
-        for link in "$domain_dir"/*; do
-            [ -L "$link" ] && echo "  - $(basename "$link")"
-        done
-    else
-        echo "  (cap)"
-    fi
-
-    # Última decisió
-    echo ""
-    echo "Última decisió:"
-    if [ -f "$claude_md" ]; then
-        # Extreure decisions de la secció confirmades
-        local last_decision
-        last_decision=$(sed -n '/### Decisions clau confirmades/,/###/p' "$claude_md" 2>/dev/null | grep -E '^- |^  - ' | tail -1 | sed 's/^[[:space:]]*- //' || echo "")
-        if [ -n "$last_decision" ]; then
-            echo "  $last_decision"
-        else
-            echo "  (cap)"
-        fi
-    else
-        echo "  (no hi ha CLAUDE.md)"
-    fi
-
-    # Pròxim pas (de l'estat actual)
-    echo ""
-    echo "Pròxim pas:"
-    if [ -f "$claude_md" ]; then
-        local status
-        status=$(sed -n '/## Estat actual/,/^## /p' "$claude_md" 2>/dev/null | grep -v '^## ' | grep -v '^<!--' | grep -v '^$' | head -3 || echo "")
-        if [ -n "$status" ]; then
-            echo "$status"
-        else
-            echo "  (per definir)"
-        fi
-    else
-        echo "  (executa init-existing-project.sh primer)"
-    fi
-
-    echo ""
-    echo "Directori: $project_dir"
+    # Alias de resume — compatibilitat
+    cmd_resume "$@"
 }
 
 cmd_resume() {
@@ -697,17 +642,85 @@ cmd_models() {
                 echo "Arrenca'l amb: platform models start"
             fi
             ;;
+        test)
+            echo ""
+            echo "===================================="
+            echo "  Model Connectivity Test"
+            echo "===================================="
+            echo ""
+
+            local litellm_host="${LITELLM_HOST:-127.0.0.1}"
+            local litellm_port="${LITELLM_PORT:-4000}"
+            local litellm_key="${LITELLM_MASTER_KEY:-sk-local-platform}"
+            local base_url="http://${litellm_host}:${litellm_port}"
+            local errors=0
+            local total=0
+
+            test_model() {
+                local model="$1"
+                local label="$2"
+                total=$((total + 1))
+
+                # Primer comprovar si la clau API necessària existeix
+                local env_key
+                case "$model" in
+                    claude-sonnet|claude-haiku)
+                        env_key="${ANTHROPIC_API_KEY:-}"
+                        ;;
+                    deepseek-chat|deepseek-reasoner)
+                        env_key="${DEEPSEEK_API_KEY:-}"
+                        ;;
+                esac
+
+                if [ -z "$env_key" ] || [ "$env_key" = '""' ] || [ "$env_key" = "''" ]; then
+                    printf "  %-20s ERROR   Missing API Key\n" "$label"
+                    errors=$((errors + 1))
+                    return
+                fi
+
+                # Test de connexió a LiteLLM
+                local response
+                response=$(curl -s -o /dev/null -w "%{http_code}" \
+                    -X POST "$base_url/v1/chat/completions" \
+                    -H "Authorization: Bearer $litellm_key" \
+                    -H "Content-Type: application/json" \
+                    -d "{\"model\":\"$model\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":5}" \
+                    2>/dev/null || echo "000")
+
+                if [ "$response" = "200" ]; then
+                    printf "  %-20s OK\n" "$label"
+                else
+                    printf "  %-20s ERROR   HTTP %s\n" "$label" "$response"
+                    errors=$((errors + 1))
+                fi
+            }
+
+            test_model "claude-sonnet"      "claude-sonnet"
+            test_model "claude-haiku"       "claude-haiku"
+            test_model "deepseek-chat"      "deepseek-chat"
+            test_model "deepseek-reasoner"  "deepseek-reasoner"
+
+            echo ""
+            if [ "$errors" -eq 0 ]; then
+                echo "Resultat: Tots els models operatius ($total/$total)"
+            else
+                local ok=$((total - errors))
+                echo "Resultat: $errors model(s) amb errors ($ok/$total OK)"
+            fi
+            echo ""
+            ;;
         logs)
             echo "Mostrant logs de LiteLLM (Ctrl+C per sortir)..."
             cd "$litellm_dir"
             docker compose logs -f --tail=50 2>/dev/null || echo "No s'han pogut recuperar els logs. LiteLLM està actiu?"
             ;;
         *)
-            echo "Ús: platform models <start|stop|status|logs>"
+            echo "Ús: platform models <start|stop|status|test|logs>"
             echo ""
             echo "  start   Arrencar LiteLLM"
             echo "  stop    Aturar LiteLLM"
             echo "  status  Estat de LiteLLM"
+            echo "  test    Test de connexió als models"
             echo "  logs    Logs de LiteLLM"
             ;;
     esac
@@ -771,7 +784,7 @@ if [ $# -eq 0 ]; then
             cmd_doctor
             ;;
         12)
-            echo "  Accions: start | stop | status | logs"
+            echo "  Accions: start | stop | status | test | logs"
             read -p "  Acció: " maction
             cmd_models "$maction"
             ;;
@@ -789,19 +802,23 @@ else
     case "$1" in
         new)
             shift
-            cmd_new "${1:?Falta el nom del projecte}"
+            if [ $# -lt 1 ]; then echo "Ús: platform new <nom>"; exit 1; fi
+            cmd_new "$1"
             ;;
         import)
             shift
-            cmd_import "${1:?Falta el nom del projecte}"
+            if [ $# -lt 1 ]; then echo "Ús: platform import <nom>"; exit 1; fi
+            cmd_import "$1"
             ;;
         open)
             shift
-            cmd_open "${1:?Falta el nom del projecte}"
+            if [ $# -lt 1 ]; then echo "Ús: platform open <projecte>  (alias de resume)"; exit 1; fi
+            cmd_open "$1"
             ;;
         status)
             shift
-            cmd_status "${1:?Falta el nom del projecte}"
+            if [ $# -lt 1 ]; then echo "Ús: platform status <nom>"; exit 1; fi
+            cmd_status "$1"
             ;;
         skills)
             shift

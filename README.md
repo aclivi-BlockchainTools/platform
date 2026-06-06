@@ -153,10 +153,30 @@ Comprova: platform, PATH, PROJECTS_DIR, Claude Code, Docker, Docker Compose, Lit
 platform models start     # Arrencar LiteLLM
 platform models stop      # Aturar LiteLLM
 platform models status    # Estat de LiteLLM
+platform models test      # Test de connexió als models
 platform models logs      # Logs de LiteLLM
 ```
 
 LiteLLM exposa Claude Sonnet, Claude Haiku, DeepSeek Chat i DeepSeek Reasoner via `http://127.0.0.1:4000`.
+
+### Test de models
+
+```bash
+platform models test
+```
+
+Valida la connexió a cada model i mostra un resum.
+
+## Model Routing
+
+**Principi: Claude decideix. DeepSeek implementa.**
+
+| Model | Per a què |
+|-------|-----------|
+| **Claude Sonnet** | Arquitectura, disseny, decisions, refactors, code review, planificació |
+| **Claude Haiku** | Consultes ràpides, tasques simples, resums |
+| **DeepSeek Chat** | Generació de codi, CRUDs, APIs, components, scripts, tasques repetitives |
+| **DeepSeek Reasoner** | Debugging complex, algoritmes, investigació, errors persistents |
 
 ## Workflow UI premium
 
