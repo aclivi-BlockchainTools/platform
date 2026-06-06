@@ -65,6 +65,27 @@ platform/scripts/suggest-skills.sh <projecte>
 - Mostra cada skill suggerida amb confiança (alta/mitjana/baixa) i motiu.
 - No activa res automàticament — l'usuari decideix.
 
+### Analitzar stack i skills
+
+```bash
+platform/scripts/suggest-skills.sh <projecte>
+```
+
+- Separa stack detectat (tecnologies) de skills de domini suggerides.
+- Mostra cada detecció amb confiança (alta/mitjana/baixa) i motiu.
+- Només suggereix skills que existeixen a `platform/skills/domain/`.
+- No activa res automàticament — l'usuari decideix.
+
+### Criteri de completitud
+
+Una tasca no es considera completada fins que:
+1. El codi està implementat.
+2. El projecte compila (si aplica).
+3. Els tests passen (si n'hi ha).
+4. El flux principal s'ha verificat.
+
+Vegeu `skills/universal/task-completion.md` per al detall complet.
+
 ## Principis
 
 1. Creativitat neta en projectes nous
@@ -72,3 +93,4 @@ platform/scripts/suggest-skills.sh <projecte>
 3. Airlock: suggerir sense aplicar
 4. Patterns abstractes, no codi copiat
 5. GitHub com a font de veritat
+6. Implementat != completat: verificar abans de declarar fet

@@ -4,11 +4,19 @@
 <!-- Una frase que descrigui el projecte -->
 
 ## Stack
-Stack detectat (confiança alta):
+<!-- AUTO-GENERATED-STACK-START -->
+### Stack detectat (confiança alta)
 <!-- S'omple automàticament amb init-existing-project.sh -->
 
-Stack detectat (confiança baixa):
+### Stack detectat (confiança mitjana)
 <!-- S'omple automàticament amb init-existing-project.sh -->
+
+### Stack detectat (confiança baixa)
+<!-- S'omple automàticament amb init-existing-project.sh -->
+<!-- AUTO-GENERATED-STACK-END -->
+
+### Stack confirmat
+<!-- Validat manualment per l'usuari. No sobreescrit per scripts. -->
 
 ## Estat actual
 <!-- Per omplir amb Claude a la primera sessió -->

@@ -13,7 +13,7 @@ if [ $# -ne 2 ]; then
     echo ""
     echo "Skills disponibles:"
     if [ -d "$SKILLS_DIR" ] && [ -n "$(ls -A "$SKILLS_DIR" 2>/dev/null)" ]; then
-        ls -1 "$SKILLS_DIR"
+        for d in "$SKILLS_DIR"/*/; do [ -d "$d" ] && basename "$d"; done || echo "  (cap)"
     else
         echo "  (cap)"
     fi
@@ -35,7 +35,7 @@ if [ ! -d "$SKILL_DIR" ]; then
     echo ""
     echo "Skills disponibles:"
     if [ -d "$SKILLS_DIR" ] && [ -n "$(ls -A "$SKILLS_DIR" 2>/dev/null)" ]; then
-        ls -1 "$SKILLS_DIR"
+        for d in "$SKILLS_DIR"/*/; do [ -d "$d" ] && basename "$d"; done || echo "  (cap)"
     else
         echo "  (cap)"
     fi

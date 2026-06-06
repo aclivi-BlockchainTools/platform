@@ -2,7 +2,7 @@
 
 ## On trobar les coses
 
-- `skills/universal/` — Skills sempre actives a tots els projectes
+- `skills/universal/` — Skills sempre actives a tots els projectes (inclou `task-completion.md`: criteri de completitud)
 - `skills/domain/` — Skills de domini específiques (activació manual)
 - `patterns/` — Lliçons apreses abstractes
 - `templates/` — Plantilles per inicialitzar projectes
