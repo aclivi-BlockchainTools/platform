@@ -100,15 +100,25 @@ platform/scripts/platform.sh new <nom>
 - Crea un repo privat a GitHub, clona, aplica la plantilla i fa commit inicial.
 - Deixa `.claude/active-skills/domain/` buit (les skills de domini s'activen manualment).
 
-### Adaptar un projecte existent
+### Connectar un projecte existent
 
 ```bash
-platform/scripts/platform.sh import <nom>
+platform import <nom>
 ```
 
-- Detecta l'stack automàticament amb nivells de confiança (alta/mitjana/baixa).
-- Escriu l'stack al CLAUDE.md entre marcadors (no sobreescriu info manual).
-- Si no hi ha skills de domini, ho indica sense fallar.
+**És l'únic pas necessari.** No cal editar el CLAUDE.md manualment.
+
+Què fa:
+
+- Crea backup del CLAUDE.md original (`.claude/CLAUDE.md.bak-YYYYMMDD-HHMMSS`).
+- Si el CLAUDE.md és a l'arrel (`CLAUDE.md`), el mou a `.claude/CLAUDE.md`.
+- Afegeix **només les seccions que falten**, sense tocar contingut existent:
+  - `## Descripció`, `## Stack`, `## Estat actual`, `## Decisions clau`
+  - `## Model Strategy`, `## Skills de domini actives`, `## Errors resolts`, `## Fora de context`
+- Detecta stack en arrel i subdirectoris (`frontend/`, `backend/`).
+- Crea directoris: `.claude/active-skills/domain/`, `docs/decisions/`, `docs/tasks/`.
+- Si detecta decisions inline al CLAUDE.md original, afegeix `## Migració pendent` amb instruccions.
+- No activa skills de domini automàticament.
 
 ### Activar una skill de domini
 
