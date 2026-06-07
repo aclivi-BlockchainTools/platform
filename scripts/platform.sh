@@ -532,9 +532,9 @@ cmd_doctor() {
 
     # Claude Code
     if command -v claude &> /dev/null; then
-        check_ok "Claude Code instal·lat"
+        check_ok "Claude Code instal·lat (usa login de compte Claude)"
     else
-        check_warn "Claude Code no instal·lat"
+        check_warn "Claude Code no instal·lat. Instal·la'l amb: npm install -g @anthropic-ai/claude-code"
     fi
 
     # Docker
@@ -556,11 +556,10 @@ cmd_doctor() {
     fi
 
     # LiteLLM config
-    local litellm_env="$PLATFORM_DIR/litellm/.env"
-    if [ -f "$litellm_env" ]; then
-        check_ok "LiteLLM .env existeix"
+    if [ -f "$PLATFORM_CONFIG_DIR/.env" ]; then
+        check_ok "~/.platform/.env existeix"
     else
-        check_warn "LiteLLM .env no existeix. Copia litellm/.env.example → litellm/.env"
+        check_warn "~/.platform/.env no existeix. Executa: platform config"
     fi
 
     if [ -f "$PLATFORM_DIR/litellm/config.yaml" ]; then
@@ -572,20 +571,20 @@ cmd_doctor() {
     # API keys
     local platform_env="$PLATFORM_CONFIG_DIR/.env"
     if [ -f "$platform_env" ]; then
-        local anthropic_key
-        anthropic_key=$(grep -E '^ANTHROPIC_API_KEY=' "$platform_env" 2>/dev/null | cut -d= -f2- || echo "")
-        if [ -n "$anthropic_key" ] && [ "$anthropic_key" != '""' ] && [ "$anthropic_key" != "''" ]; then
-            check_ok "ANTHROPIC_API_KEY configurada"
-        else
-            check_warn "ANTHROPIC_API_KEY pendent"
-        fi
-
         local deepseek_key
         deepseek_key=$(grep -E '^DEEPSEEK_API_KEY=' "$platform_env" 2>/dev/null | cut -d= -f2- || echo "")
         if [ -n "$deepseek_key" ] && [ "$deepseek_key" != '""' ] && [ "$deepseek_key" != "''" ]; then
-            check_ok "DEEPSEEK_API_KEY configurada"
+            check_ok "DEEPSEEK_API_KEY configurada (DeepSeek V4 Pro/Flash)"
         else
-            check_warn "DEEPSEEK_API_KEY pendent"
+            check_warn "DEEPSEEK_API_KEY pendent — necessària per DeepSeek"
+        fi
+
+        local anthropic_key
+        anthropic_key=$(grep -E '^ANTHROPIC_API_KEY=' "$platform_env" 2>/dev/null | cut -d= -f2- || echo "")
+        if [ -n "$anthropic_key" ] && [ "$anthropic_key" != '""' ] && [ "$anthropic_key" != "''" ]; then
+            check_ok "ANTHROPIC_API_KEY configurada (Claude via API)"
+        else
+            check_ok "ANTHROPIC_API_KEY opcional si uses Claude Code amb login"
         fi
     else
         check_warn "~/.platform/.env no existeix. Executa: platform config"
@@ -661,45 +660,66 @@ cmd_models() {
             local litellm_key="${LITELLM_MASTER_KEY:-sk-local-platform}"
             local base_url="http://${litellm_host}:${litellm_port}"
             local errors=0
-            local total=0
+            local skipped=0
+            local ok=0
 
             test_model() {
                 local model="$1"
                 local label="$2"
-                total=$((total + 1))
 
-                # Primer comprovar si la clau API necessària existeix
+                # Comprovar si la clau API necessària existeix
                 local env_key
+                local key_name
                 case "$model" in
                     claude-sonnet|claude-haiku)
                         env_key="${ANTHROPIC_API_KEY:-}"
+                        key_name="ANTHROPIC_API_KEY"
                         ;;
                     deepseek-v4-flash|deepseek-v4-pro)
                         env_key="${DEEPSEEK_API_KEY:-}"
+                        key_name="DEEPSEEK_API_KEY"
                         ;;
                 esac
 
                 if [ -z "$env_key" ] || [ "$env_key" = '""' ] || [ "$env_key" = "''" ]; then
-                    printf "  %-20s ERROR   Missing API Key\n" "$label"
-                    errors=$((errors + 1))
+                    # Claude sense API key és opcional (Mode A: Claude Code amb login)
+                    if [ "$key_name" = "ANTHROPIC_API_KEY" ]; then
+                        printf "  %-20s SKIPPED %s no configurada (usa Claude Code amb login)\n" "$label" "$key_name"
+                        skipped=$((skipped + 1))
+                    else
+                        printf "  %-20s ERROR   %s no configurada\n" "$label" "$key_name"
+                        errors=$((errors + 1))
+                    fi
                     return
                 fi
 
-                # Test de connexió a LiteLLM
-                local response
-                response=$(curl -s -o /dev/null -w "%{http_code}" \
+                # Test de connexió real a LiteLLM
+                local response_file
+                response_file=$(mktemp)
+                local http_code
+                http_code=$(curl -s -o "$response_file" -w "%{http_code}" \
                     -X POST "$base_url/v1/chat/completions" \
                     -H "Authorization: Bearer $litellm_key" \
                     -H "Content-Type: application/json" \
-                    -d "{\"model\":\"$model\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":5}" \
+                    -d "{\"model\":\"$model\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":100}" \
                     2>/dev/null || echo "000")
 
-                if [ "$response" = "200" ]; then
-                    printf "  %-20s OK\n" "$label"
+                if [ "$http_code" = "200" ]; then
+                    # Verificar que la resposta és JSON vàlid sense error
+                    if grep -q '"error"' "$response_file" 2>/dev/null; then
+                        local err_msg
+                        err_msg=$(grep -o '"message":"[^"]*"' "$response_file" 2>/dev/null | head -1 | cut -d'"' -f4 || echo "error desconegut")
+                        printf "  %-20s ERROR   %s\n" "$label" "$err_msg"
+                        errors=$((errors + 1))
+                    else
+                        printf "  %-20s OK\n" "$label"
+                        ok=$((ok + 1))
+                    fi
                 else
-                    printf "  %-20s ERROR   HTTP %s\n" "$label" "$response"
+                    printf "  %-20s ERROR   HTTP %s\n" "$label" "$http_code"
                     errors=$((errors + 1))
                 fi
+                rm -f "$response_file"
             }
 
             test_model "deepseek-v4-pro"     "deepseek-v4-pro"
@@ -708,11 +728,13 @@ cmd_models() {
             test_model "claude-sonnet"      "claude-sonnet"
 
             echo ""
-            if [ "$errors" -eq 0 ]; then
+            local total=$((ok + errors + skipped))
+            if [ "$errors" -eq 0 ] && [ "$skipped" -eq 0 ]; then
                 echo "Resultat: Tots els models operatius ($total/$total)"
+            elif [ "$errors" -eq 0 ]; then
+                echo "Resultat: $ok OK, $skipped omesos (opcionals) — tot correcte"
             else
-                local ok=$((total - errors))
-                echo "Resultat: $errors model(s) amb errors ($ok/$total OK)"
+                echo "Resultat: $ok OK, $errors error(s), $skipped omesos"
             fi
             echo ""
             ;;

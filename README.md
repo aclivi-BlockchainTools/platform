@@ -15,7 +15,35 @@ bash scripts/install.sh
 platform config
 platform doctor
 platform models start
+platform models test
+claude
 ```
+
+## Modes d'ús de Claude
+
+### Mode recomanat: Claude Code amb compte
+
+```bash
+claude
+```
+
+Inicia sessió amb el teu compte Claude.
+
+Aquest mode **NO requereix** `ANTHROPIC_API_KEY`.
+
+DeepSeek V4 Pro/Flash funcionen via API key + LiteLLM.
+
+### Mode API opcional
+
+Si vols usar Claude també via LiteLLM (per `platform models test` o per routing):
+
+Afegeix a `~/.platform/.env`:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Després de configurar-la, `platform models test` mostrarà `claude-sonnet: OK`.
 
 ## Què és
 

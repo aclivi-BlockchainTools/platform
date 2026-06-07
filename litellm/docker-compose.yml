@@ -5,7 +5,7 @@ services:
     ports:
       - "${LITELLM_HOST:-127.0.0.1}:${LITELLM_PORT:-4000}:4000"
     env_file:
-      - ${PLATFORM_DIR:-$HOME/platform}/litellm/.env
+      - /home/usuari/.platform/.env
     volumes:
       - ${PLATFORM_DIR:-$HOME/platform}/litellm/config.yaml:/app/config.yaml
     command: ["--config", "/app/config.yaml"]
