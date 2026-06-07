@@ -348,6 +348,54 @@ task-completion verifica
 
 Cada execució de `platform task` guarda un fitxer `YYYY-MM-DD-HHMMSS-<slug>.md` al directori `docs/tasks/` del projecte amb: prompt, context usat, resposta del model i estat (Implementat/Verificat/Completat).
 
+## Platform MCP Server
+
+Integració nativa amb Claude Code via MCP (Model Context Protocol). 8 tools que permeten treballar sense haver d'executar `platform` manualment.
+
+### Instal·lació
+
+```bash
+claude mcp add platform -- node /home/usuari/platform/mcp-server/index.js
+```
+
+Per verificar:
+
+```bash
+claude mcp list
+```
+
+### Tools
+
+| Tool | Què fa |
+|------|--------|
+| `platform_resume_project` | Estat complet: stack, skills, tasques, decisions, pròxim pas |
+| `platform_route_task` | Classifica tasca i recomana model |
+| `platform_ask_model` | Envia prompt a DeepSeek/Claude via LiteLLM |
+| `platform_create_task` | Crea tasca: classifica + executa + guarda a docs/tasks/ |
+| `platform_save_task` | Guarda tasca manualment a docs/tasks/ |
+| `platform_list_projects` | Llista tots els projectes a ~/Projects/ |
+| `platform_list_domain_skills` | Llista skills de domini disponibles |
+| `platform_activate_skill` | Activa skill de domini (requereix confirmació) |
+
+### Exemple d'ús dins Claude Code
+
+L'usuari escriu:
+
+> Analitza wa-desk2 i proposa següents passos
+
+Claude Code:
+1. Crida `platform_resume_project` per entendre l'estat
+2. Crida `platform_route_task` per classificar
+3. Crida `platform_create_task` per generar el pla
+4. Mostra el resultat i la ruta del fitxer guardat
+
+### Limitacions
+
+- El MCP llegeix context i guarda tasques, però no modifica codi.
+- Claude Code continua sent qui edita fitxers del projecte.
+- L'airlock de skills es manté: `platform_activate_skill` requereix confirmació.
+- Sense ANTHROPIC_API_KEY, els models Claude responen amb instruccions per Claude Code.
+
 ## Skills universals (8)
 
 | Skill | Funció |
