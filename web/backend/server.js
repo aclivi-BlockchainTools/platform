@@ -7,6 +7,7 @@ import { modelsRouter } from './routes/models.js';
 import { v0Router } from './routes/v0.js';
 import { routingRouter } from './routes/routing.js';
 import { systemRouter } from './routes/system.js';
+import { platformRouter } from './routes/platform.js';
 
 const app = express();
 const PORT = 3333;
@@ -21,6 +22,7 @@ app.use('/api/models', modelsRouter);
 app.use('/api/v0', v0Router);
 app.use('/api/routing', routingRouter);
 app.use('/api/system', systemRouter);
+app.use('/api/platform', platformRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });

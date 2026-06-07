@@ -36,6 +36,9 @@ export default function Layout({ children }) {
         <Link to="/system" className={`sidebar-link ${isActive('/system') ? 'active' : ''}`}>
           System
         </Link>
+        <Link to="/platform" className={`sidebar-link ${isActive('/platform') ? 'active' : ''}`}>
+          Platform
+        </Link>
 
         <div className="sidebar-section">Projectes</div>
         {projects.map(p => (

@@ -8,6 +8,7 @@ import SkillsView from './pages/SkillsView';
 import V0View from './pages/V0View';
 import ModelsView from './pages/ModelsView';
 import SystemView from './pages/SystemView';
+import PlatformView from './pages/PlatformView';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/v0" element={<V0View />} />
           <Route path="/models" element={<ModelsView />} />
           <Route path="/system" element={<SystemView />} />
+          <Route path="/platform" element={<PlatformView />} />
         </Routes>
       </Layout>
     </BrowserRouter>
