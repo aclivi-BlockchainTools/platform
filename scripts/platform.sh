@@ -454,7 +454,6 @@ cmd_config() {
             echo "  [✗] $desc — PENDENT"
             missing=true
         else
-            # Mostrar només primers i últims caràcters
             local masked
             if [ ${#val} -gt 8 ]; then
                 masked="${val:0:4}...${val: -4}"
@@ -465,7 +464,27 @@ cmd_config() {
         fi
     }
 
-    check_key "ANTHROPIC_API_KEY"  "Anthropic API Key"
+    check_key_optional() {
+        local key="$1"
+        local desc="$2"
+        local hint="$3"
+        local val
+        val=$(grep -E "^${key}=" "$env_file" 2>/dev/null | cut -d= -f2- || echo "")
+
+        if [ -z "$val" ] || [ "$val" = '""' ] || [ "$val" = "''" ]; then
+            echo "  [!] $desc — opcional ($hint)"
+        else
+            local masked
+            if [ ${#val} -gt 8 ]; then
+                masked="${val:0:4}...${val: -4}"
+            else
+                masked="****"
+            fi
+            echo "  [✓] $desc — $masked"
+        fi
+    }
+
+    check_key_optional "ANTHROPIC_API_KEY" "Anthropic API Key" "només cal si uses Claude via LiteLLM; Claude Code usa login de compte"
     check_key "DEEPSEEK_API_KEY"   "DeepSeek API Key"
     check_key "LITELLM_MASTER_KEY" "LiteLLM Master Key"
     check_key "LITELLM_HOST"       "LiteLLM Host"

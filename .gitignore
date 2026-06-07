@@ -3,5 +3,6 @@
 *.swo
 *~
 
-# Configuració local (conté claus API)
+# litellm/.env no s'hauria de crear mai — font de veritat: ~/.platform/.env
+# Ignorat per si algú el crea accidentalment.
 litellm/.env

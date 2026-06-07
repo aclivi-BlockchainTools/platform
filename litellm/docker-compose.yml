@@ -1,10 +1,11 @@
 services:
   litellm:
-    image: ghcr.io/berriai/litellm:main-latest
+    image: ghcr.io/berriai/litellm:main-v1.82.6
     container_name: platform-litellm
     ports:
       - "${LITELLM_HOST:-127.0.0.1}:${LITELLM_PORT:-4000}:4000"
     env_file:
+      # Font de veritat: ~/.platform/.env  (NO usar litellm/.env)
       - /home/usuari/.platform/.env
     volumes:
       - ${PLATFORM_DIR:-$HOME/platform}/litellm/config.yaml:/app/config.yaml
