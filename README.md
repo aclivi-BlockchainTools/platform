@@ -309,10 +309,17 @@ Combina classificació + consulta a LiteLLM + persistència. Genera un pla o res
 platform task demo-crm "Crear CRUD de clients amb frontend i backend"
 ```
 
-- Si el model és **DeepSeek**: consulta LiteLLM amb context del projecte (stack, skills, estat), guarda resposta a `docs/tasks/`.
+- Si el model és **DeepSeek**: consulta LiteLLM amb context complet del projecte (Stack, Estat actual complet, Decisions clau, Model Strategy, última tasca), guarda resposta a `docs/tasks/`.
 - Si el model és **Claude**: guarda el prompt preparat i mostra instrucció per usar Claude Code.
+- El prompt inclou instruccions fortes per no proposar funcionalitats ja completades i estructurar la resposta segons el tipus de tasca.
 
 **Important:** `platform task` NO modifica codi. Genera plans, respostes o prompts de treball.
+
+**Test manual recomanat:**
+```bash
+platform task wa-desk2 "Analitza el projecte i proposa els següents passos"
+```
+La resposta ha de respectar l'Estat actual i no proposar implementar funcionalitats ja completades.
 
 ### Regles de routing
 

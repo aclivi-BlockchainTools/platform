@@ -621,7 +621,9 @@ cmd_task() {
         exit 1
     fi
 
+    # Trobar CLAUDE.md (a .claude/ o arrel)
     local claude_md="$project_dir/.claude/CLAUDE.md"
+    [ -f "$claude_md" ] || claude_md="$project_dir/CLAUDE.md"
 
     classify_task "$task_desc"
     local model="$ROUTE_MODEL"
@@ -634,21 +636,34 @@ cmd_task() {
     echo "Model:    $model ($category)"
     echo ""
 
-    # Context del projecte
+    # Context del projecte — complet, no resumit
     local stack=""
-    local skills=""
     local estat=""
+    local decisions=""
+    local model_strategy=""
+    local skills=""
 
     if [ -f "$claude_md" ]; then
+        # Stack
         if grep -q "AUTO-GENERATED-STACK-START" "$claude_md" 2>/dev/null; then
             stack=$(sed -n '/AUTO-GENERATED-STACK-START/,/AUTO-GENERATED-STACK-END/p' "$claude_md" \
                 | grep '^- ' | sed 's/^- //' | tr '\n' ',' | sed 's/,$//')
         fi
-        estat=$(sed -n '/## Estat actual/,/^## /p' "$claude_md" 2>/dev/null \
-            | grep -v '^## ' | grep -v '^<!--' | grep -v '^$' | head -3 \
-            | tr '\n' ' ' | sed 's/^[[:space:]]*//')
+
+        # Estat actual COMPLET (no només 3 línies)
+        estat=$(sed -n '/^## Estat actual/,/^## /p' "$claude_md" 2>/dev/null \
+            | grep -v '^## ' | grep -v '^<!--' | sed '/^$/N;/^\n$/d')
+
+        # Decisions clau
+        decisions=$(sed -n '/^## Decisions clau/,/^## /p' "$claude_md" 2>/dev/null \
+            | grep -v '^## ' | grep -v '^<!--' | sed '/^$/N;/^\n$/d' | head -30)
+
+        # Model Strategy
+        model_strategy=$(sed -n '/^## Model Strategy/,/^## /p' "$claude_md" 2>/dev/null \
+            | grep -v '^## ' | grep -v '^<!--' | sed '/^$/N;/^\n$/d')
     fi
 
+    # Skills actives
     local domain_dir="$project_dir/.claude/active-skills/domain"
     if [ -d "$domain_dir" ]; then
         for item in "$domain_dir"/*; do
@@ -661,27 +676,140 @@ cmd_task() {
         skills="${skills%,}"
     fi
 
+    # Última tasca
+    local last_task_info=""
+    local tasks_dir="$project_dir/docs/tasks"
+    if [ -d "$tasks_dir" ] && [ -n "$(ls -A "$tasks_dir"/*.md 2>/dev/null)" ]; then
+        local last_task_file
+        last_task_file=$(ls -1t "$tasks_dir"/*.md 2>/dev/null | head -1)
+        if [ -n "$last_task_file" ]; then
+            local last_title last_model last_impl last_verif last_comp
+            last_title=$(grep '^# Tasca:' "$last_task_file" 2>/dev/null | head -1 | sed 's/^# Tasca: //')
+            last_model=$(grep '^Model recomanat:' "$last_task_file" 2>/dev/null | head -1 | sed 's/^Model recomanat: //')
+            last_impl=$(grep '^Implementat:' "$last_task_file" 2>/dev/null | head -1 | sed 's/^Implementat: //')
+            last_verif=$(grep '^Verificat:' "$last_task_file" 2>/dev/null | head -1 | sed 's/^Verificat: //')
+            last_comp=$(grep '^Completat:' "$last_task_file" 2>/dev/null | head -1 | sed 's/^Completat: //')
+            last_task_info="Última tasca: ${last_title:-?} (model: ${last_model:-?}, implementat: ${last_impl:-no}, verificat: ${last_verif:-no}, completat: ${last_comp:-no})"
+        fi
+    fi
+
     # Fitxer de tasca
+    mkdir -p "$tasks_dir"
     local timestamp
     timestamp=$(date '+%Y-%m-%d-%H%M%S')
     local slug
     slug=$(echo "$task_desc" | tr '[:upper:]' '[:lower:]' \
         | sed 's/[^a-z0-9]/-/g; s/-\+/-/g' | cut -c1-40 | sed 's/-$//')
-    local tasks_dir="$project_dir/docs/tasks"
-    mkdir -p "$tasks_dir"
     local task_file="$tasks_dir/${timestamp}-${slug}.md"
 
-    # Prompt amb context
+    # Prompt amb context COMPLET + instrucció forta
     local full_prompt="Projecte: $project_name"
     [ -n "$stack" ]  && full_prompt="${full_prompt}
 Stack: $stack"
     [ -n "$skills" ] && full_prompt="${full_prompt}
 Skills actives: $skills"
     [ -n "$estat" ]  && full_prompt="${full_prompt}
-Estat actual: $estat"
+
+## Estat actual del projecte
+
+$estat"
+    [ -n "$decisions" ] && full_prompt="${full_prompt}
+
+## Decisions clau
+
+$decisions"
+    [ -n "$model_strategy" ] && full_prompt="${full_prompt}
+
+## Model Strategy
+
+$model_strategy"
+    [ -n "$last_task_info" ] && full_prompt="${full_prompt}
+
+$last_task_info"
     full_prompt="${full_prompt}
 
-Tasca: $task_desc"
+## Tasca sol·licitada
+
+$task_desc
+
+## Instruccions
+
+1. NO proposis implementar funcionalitats que l'Estat actual indica com a completades o funcionals. Llegeix atentament què ja està fet.
+2. Si una àrea ja està implementada però no verificada, marca-la com a 'verificar', no com a 'implementar'.
+3. Si la tasca és d'anàlisi o següents passos, estructura la resposta en:
+   - ✅ Ja fet (funcionalitats que el context confirma completades)
+   - 🔧 Pendent (funcionalitats reals pendents, no repetir les ja fetes)
+   - ⚠️ Riscos (riscos detectats segons l'estat actual)
+   - 📋 10 següents passos prioritzats (concrets, accionables, no genèrics)
+4. Si la tasca és d'implementació, proposa un pla concret que respongui a la tasca, sense reimplementar el que ja funciona.
+5. Sigues específic amb noms de fitxers, rutes i tecnologies existents.
+6. Proposa sempre el camí més simple. No afegeixis complexitat innecessària."
+
+    local response=""
+
+    if [[ "$model" == deepseek-* ]]; then
+        local deepseek_key="${DEEPSEEK_API_KEY:-}"
+        if [ -z "$deepseek_key" ] || [ "$deepseek_key" = '""' ] || [ "$deepseek_key" = "''" ]; then
+            echo "ERROR: DEEPSEEK_API_KEY no configurada. Executa: platform config"
+            exit 1
+        fi
+
+        local litellm_host="${LITELLM_HOST:-127.0.0.1}"
+        local litellm_port="${LITELLM_PORT:-4000}"
+        local litellm_key="${LITELLM_MASTER_KEY:-sk-local-platform}"
+        local base_url="http://${litellm_host}:${litellm_port}"
+
+        echo "Consultant $model via LiteLLM..."
+        echo ""
+
+        local response_file
+        response_file=$(mktemp)
+        local prompt_json
+        prompt_json=$(python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" <<< "$full_prompt")
+        local http_code
+        http_code=$(curl -s -o "$response_file" -w "%{http_code}" \
+            -X POST "$base_url/v1/chat/completions" \
+            -H "Authorization: Bearer $litellm_key" \
+            -H "Content-Type: application/json" \
+            -d "{\"model\":\"$model\",\"messages\":[{\"role\":\"user\",\"content\":$prompt_json}],\"max_tokens\":4096}" \
+            2>/dev/null || echo "000")
+
+        if [ "$http_code" = "200" ]; then
+            response=$(python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+if 'error' in d:
+    print('ERROR:', d['error'].get('message', 'error desconegut'))
+else:
+    print(d['choices'][0]['message']['content'])
+" < "$response_file")
+            echo "$response"
+        else
+            response="ERROR HTTP $http_code — LiteLLM no disponible o model incorrecte."
+            echo "$response"
+        fi
+        rm -f "$response_file"
+
+    else
+        response="Obre Claude Code en aquest projecte i executa aquesta tasca.
+
+Prompt preparat:
+
+$full_prompt"
+        echo "Model recomanat: $model"
+        echo "Claude via LiteLLM no s'usa per defecte."
+        echo ""
+        echo "Obre Claude Code en aquest projecte i executa aquesta tasca."
+        echo ""
+        echo "Prompt preparat (també guardat al fitxer de tasca):"
+        echo "---"
+        echo "$full_prompt"
+        echo "---"
+    fi
+
+    # Guardar fitxer de tasca
+    local title
+    title=$(echo "$task_desc" | cut -c1-60)
 
     local response=""
 

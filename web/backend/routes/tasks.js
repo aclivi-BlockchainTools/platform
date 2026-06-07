@@ -75,7 +75,7 @@ tasksRouter.post('/projects/:name/tasks', async (req, res) => {
       }
     }
 
-    // Build context for prompt
+    // Build context for prompt — COMPLET, no truncat
     const claudePath = findClaudeMd(name);
     let contextStr = `Projecte: ${name}`;
     try {
@@ -85,11 +85,55 @@ tasksRouter.post('/projects/:name/tasks', async (req, res) => {
         const allStack = [...parsed.stack.alta, ...parsed.stack.mitjana];
         if (allStack.length) contextStr += `\nStack: ${allStack.join(', ')}`;
         if (parsed.activeSkills.length) contextStr += `\nSkills actives: ${parsed.activeSkills.join(', ')}`;
-        if (parsed.status) contextStr += `\nEstat actual: ${parsed.status.slice(0, 200)}`;
+
+        // Estat actual COMPLET
+        if (parsed.status) {
+          contextStr += `\n\n## Estat actual del projecte\n\n${parsed.status}`;
+        }
+
+        // Decisions clau (inline extraction)
+        const decMatch = claudeContent.match(/^## Decisions clau\s*\n([\s\S]*?)(?=\n## |$)/im);
+        if (decMatch) {
+          const decText = decMatch[1].trim();
+          if (decText) contextStr += `\n\n## Decisions clau\n\n${decText.slice(0, 800)}`;
+        }
+
+        // Model Strategy (inline extraction)
+        const stratMatch = claudeContent.match(/^## Model Strategy\s*\n([\s\S]*?)(?=\n## |$)/im);
+        if (stratMatch) {
+          const stratText = stratMatch[1].trim();
+          if (stratText) contextStr += `\n\n## Model Strategy\n\n${stratText}`;
+        }
+
+        // Última tasca
+        try {
+          const tasks = listProjectTasks(name);
+          if (tasks.length > 0) {
+            const last = tasks[0];
+            contextStr += `\n\nÚltima tasca: ${last.title} (model: ${last.model}, implementat: ${last.implementat}, verificat: ${last.verificat}, completat: ${last.completat})`;
+          }
+        } catch {}
       }
     } catch {}
 
-    const fullPrompt = `${contextStr}\n\nTasca: ${description}`;
+    const fullPrompt = `${contextStr}
+
+## Tasca sol·licitada
+
+${description}
+
+## Instruccions
+
+1. NO proposis implementar funcionalitats que l'Estat actual indica com a completades o funcionals. Llegeix atentament què ja està fet.
+2. Si una àrea ja està implementada però no verificada, marca-la com a 'verificar', no com a 'implementar'.
+3. Si la tasca és d'anàlisi o següents passos, estructura la resposta en:
+   - ✅ Ja fet (funcionalitats que el context confirma completades)
+   - 🔧 Pendent (funcionalitats reals pendents, no repetir les ja fetes)
+   - ⚠️ Riscos (riscos detectats segons l'estat actual)
+   - 📋 10 següents passos prioritzats (concrets, accionables, no genèrics)
+4. Si la tasca és d'implementació, proposa un pla concret que respongui a la tasca, sense reimplementar el que ja funciona.
+5. Sigues específic amb noms de fitxers, rutes i tecnologies existents.
+6. Proposa sempre el camí més simple. No afegeixis complexitat innecessària.`;
     let responseText;
     let executionMode;
 
