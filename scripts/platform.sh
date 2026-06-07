@@ -42,7 +42,10 @@ show_menu() {
     echo " 10. Configuració          platform config"
     echo " 11. Doctor                platform doctor"
     echo " 12. Models                platform models <start|stop|status|test>"
-    echo " 13. Sortir"
+    echo " 13. Routing               platform route \"<tasca>\""
+    echo " 14. Ask model             platform ask <model> \"<prompt>\""
+    echo " 15. Task projecte         platform task <projecte> \"<tasca>\""
+    echo " 16. Sortir"
     echo ""
 }
 
@@ -193,6 +196,32 @@ cmd_resume() {
         fi
     else
         echo "  No disponible"
+    fi
+    echo ""
+
+    # --- Última tasca ---
+    echo "Última tasca:"
+    local tasks_dir="$project_dir/docs/tasks"
+    if [ -d "$tasks_dir" ] && ls "$tasks_dir"/*.md &>/dev/null 2>&1; then
+        local last_task_file
+        last_task_file=$(ls -1t "$tasks_dir"/*.md 2>/dev/null | head -1)
+        if [ -n "$last_task_file" ]; then
+            local task_title
+            task_title=$(grep '^# Tasca:' "$last_task_file" 2>/dev/null | head -1 | sed 's/^# Tasca: //')
+            local task_date
+            task_date=$(grep '^Data:' "$last_task_file" 2>/dev/null | head -1 | sed 's/^Data: //')
+            local task_impl
+            task_impl=$(grep '^Implementat:' "$last_task_file" 2>/dev/null | head -1 | sed 's/^Implementat: //')
+            local task_verif
+            task_verif=$(grep '^Verificat:' "$last_task_file" 2>/dev/null | head -1 | sed 's/^Verificat: //')
+            local task_comp
+            task_comp=$(grep '^Completat:' "$last_task_file" 2>/dev/null | head -1 | sed 's/^Completat: //')
+            echo "  ${task_title:-sense títol}"
+            echo "  Data: ${task_date:-?}"
+            echo "  Implementat: ${task_impl:-?} | Verificat: ${task_verif:-?} | Completat: ${task_comp:-?}"
+        fi
+    else
+        echo "  Cap"
     fi
     echo ""
 
@@ -423,6 +452,343 @@ cmd_v0() {
 }
 
 # ============================================================
+# Routing Engine v1
+# ============================================================
+
+classify_task() {
+    local desc="$1"
+    local desc_lower
+    desc_lower=$(echo "$desc" | tr '[:upper:]' '[:lower:]')
+
+    ROUTE_CATEGORY=""
+    ROUTE_MODEL=""
+    ROUTE_REASON=""
+    ROUTE_ALTERNATIVE=""
+
+    # Overrides explícits de l'usuari
+    if echo "$desc_lower" | grep -qE '\busa claude\b|utilitza claude'; then
+        ROUTE_CATEGORY="auditoria"
+        ROUTE_MODEL="claude-sonnet"
+        ROUTE_REASON="L'usuari ha demanat explícitament Claude."
+        ROUTE_ALTERNATIVE="deepseek-v4-pro si no cal revisió independent."
+        return
+    fi
+
+    if echo "$desc_lower" | grep -qE '\busa flash\b|utilitza flash'; then
+        ROUTE_CATEGORY="simple"
+        ROUTE_MODEL="deepseek-v4-flash"
+        ROUTE_REASON="L'usuari ha demanat explícitament Flash."
+        ROUTE_ALTERNATIVE="deepseek-v4-pro per a tasques més complexes."
+        return
+    fi
+
+    # Claude Haiku: resums, classificació, consultes ràpides
+    if echo "$desc_lower" | grep -qE '\bresum\b|resumeix|classifica|classificació|consulta ràpida|llista breu'; then
+        ROUTE_CATEGORY="consulta"
+        ROUTE_MODEL="claude-haiku"
+        ROUTE_REASON="Tasca lleugera de consulta o classificació."
+        ROUTE_ALTERNATIVE="deepseek-v4-flash per a generació de text breu."
+        return
+    fi
+
+    # Claude Sonnet: revisió, seguretat, auditoria, arquitectura crítica
+    if echo "$desc_lower" | grep -qE 'revisar|revisió|seguretat|auditoria|audita|segona opinió|decisió d.alt impacte|arquitectura crítica|validar arquitectura|risc alt'; then
+        ROUTE_CATEGORY="auditoria"
+        ROUTE_MODEL="claude-sonnet"
+        ROUTE_REASON="Tasca de revisió, seguretat o decisió d'alt impacte."
+        ROUTE_ALTERNATIVE="deepseek-v4-pro si és una revisió de codi rutinària."
+        return
+    fi
+
+    # DeepSeek Flash: boilerplate, petites modificacions, generació massiva
+    if echo "$desc_lower" | grep -qE '\bboilerplate\b|petita modificació|modificació petita|tasca repetitiva|generació massiva|afegir camps?|rename|reanomena'; then
+        ROUTE_CATEGORY="simple"
+        ROUTE_MODEL="deepseek-v4-flash"
+        ROUTE_REASON="Tasca simple, repetitiva o de boilerplate."
+        ROUTE_ALTERNATIVE="deepseek-v4-pro si hi ha lògica de negoci."
+        return
+    fi
+
+    # Default: DeepSeek V4 Pro
+    ROUTE_CATEGORY="implementació"
+    ROUTE_MODEL="deepseek-v4-pro"
+    ROUTE_REASON="Implementació principal de software."
+    ROUTE_ALTERNATIVE="deepseek-v4-flash si la tasca és purament repetitiva o boilerplate."
+}
+
+cmd_route() {
+    if [ $# -lt 1 ]; then
+        echo "Ús: platform route \"<descripció de la tasca>\""
+        exit 1
+    fi
+
+    local desc="$*"
+    classify_task "$desc"
+
+    echo ""
+    echo "Tasca:"
+    echo "  $desc"
+    echo ""
+    echo "Categoria:"
+    echo "  $ROUTE_CATEGORY"
+    echo ""
+    echo "Model recomanat:"
+    echo "  $ROUTE_MODEL"
+    echo ""
+    echo "Motiu:"
+    echo "  $ROUTE_REASON"
+    echo ""
+    echo "Alternativa:"
+    echo "  $ROUTE_ALTERNATIVE"
+    echo ""
+}
+
+cmd_ask() {
+    if [ $# -lt 2 ]; then
+        echo "Ús: platform ask <model> \"<prompt>\""
+        echo ""
+        echo "Models: deepseek-v4-pro, deepseek-v4-flash, claude-sonnet, claude-haiku"
+        exit 1
+    fi
+
+    local model="$1"
+    shift
+    local prompt="$*"
+
+    case "$model" in
+        deepseek-v4-pro|deepseek-v4-flash|claude-sonnet|claude-haiku) ;;
+        *)
+            echo "Model no reconegut: $model"
+            echo "Models acceptats: deepseek-v4-pro, deepseek-v4-flash, claude-sonnet, claude-haiku"
+            exit 1
+            ;;
+    esac
+
+    local litellm_host="${LITELLM_HOST:-127.0.0.1}"
+    local litellm_port="${LITELLM_PORT:-4000}"
+    local litellm_key="${LITELLM_MASTER_KEY:-sk-local-platform}"
+    local base_url="http://${litellm_host}:${litellm_port}"
+
+    if [[ "$model" == claude-* ]]; then
+        local anthropic_key="${ANTHROPIC_API_KEY:-}"
+        if [ -z "$anthropic_key" ] || [ "$anthropic_key" = '""' ] || [ "$anthropic_key" = "''" ]; then
+            echo "Claude via LiteLLM no configurat. Usa Claude Code amb login o configura ANTHROPIC_API_KEY."
+            exit 0
+        fi
+    fi
+
+    echo "Model: $model"
+    echo "..."
+    echo ""
+
+    local response_file
+    response_file=$(mktemp)
+    local prompt_json
+    prompt_json=$(python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" <<< "$prompt")
+    local http_code
+    http_code=$(curl -s -o "$response_file" -w "%{http_code}" \
+        -X POST "$base_url/v1/chat/completions" \
+        -H "Authorization: Bearer $litellm_key" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\":\"$model\",\"messages\":[{\"role\":\"user\",\"content\":$prompt_json}],\"max_tokens\":4096}" \
+        2>/dev/null || echo "000")
+
+    if [ "$http_code" = "200" ]; then
+        python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+if 'error' in d:
+    print('ERROR:', d['error'].get('message', 'error desconegut'))
+else:
+    print(d['choices'][0]['message']['content'])
+" < "$response_file"
+    else
+        echo "ERROR HTTP $http_code"
+        cat "$response_file"
+    fi
+
+    rm -f "$response_file"
+}
+
+cmd_task() {
+    local project_name="$1"
+    shift
+    local task_desc="$*"
+
+    local project_dir="$PROJECTS_DIR/$project_name"
+    if [ ! -d "$project_dir" ]; then
+        echo "ERROR: El projecte '$project_name' no existeix a $PROJECTS_DIR/"
+        exit 1
+    fi
+
+    local claude_md="$project_dir/.claude/CLAUDE.md"
+
+    classify_task "$task_desc"
+    local model="$ROUTE_MODEL"
+    local category="$ROUTE_CATEGORY"
+    local reason="$ROUTE_REASON"
+
+    echo ""
+    echo "Projecte: $project_name"
+    echo "Tasca:    $task_desc"
+    echo "Model:    $model ($category)"
+    echo ""
+
+    # Context del projecte
+    local stack=""
+    local skills=""
+    local estat=""
+
+    if [ -f "$claude_md" ]; then
+        if grep -q "AUTO-GENERATED-STACK-START" "$claude_md" 2>/dev/null; then
+            stack=$(sed -n '/AUTO-GENERATED-STACK-START/,/AUTO-GENERATED-STACK-END/p' "$claude_md" \
+                | grep '^- ' | sed 's/^- //' | tr '\n' ',' | sed 's/,$//')
+        fi
+        estat=$(sed -n '/## Estat actual/,/^## /p' "$claude_md" 2>/dev/null \
+            | grep -v '^## ' | grep -v '^<!--' | grep -v '^$' | head -3 \
+            | tr '\n' ' ' | sed 's/^[[:space:]]*//')
+    fi
+
+    local domain_dir="$project_dir/.claude/active-skills/domain"
+    if [ -d "$domain_dir" ]; then
+        for item in "$domain_dir"/*; do
+            [ -L "$item" ] || [ -d "$item" ] || continue
+            local sname
+            sname=$(basename "$item")
+            [ "$sname" = ".gitkeep" ] && continue
+            skills="${skills}${sname},"
+        done
+        skills="${skills%,}"
+    fi
+
+    # Fitxer de tasca
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d-%H%M%S')
+    local slug
+    slug=$(echo "$task_desc" | tr '[:upper:]' '[:lower:]' \
+        | sed 's/[^a-z0-9]/-/g; s/-\+/-/g' | cut -c1-40 | sed 's/-$//')
+    local tasks_dir="$project_dir/docs/tasks"
+    mkdir -p "$tasks_dir"
+    local task_file="$tasks_dir/${timestamp}-${slug}.md"
+
+    # Prompt amb context
+    local full_prompt="Projecte: $project_name"
+    [ -n "$stack" ]  && full_prompt="${full_prompt}
+Stack: $stack"
+    [ -n "$skills" ] && full_prompt="${full_prompt}
+Skills actives: $skills"
+    [ -n "$estat" ]  && full_prompt="${full_prompt}
+Estat actual: $estat"
+    full_prompt="${full_prompt}
+
+Tasca: $task_desc"
+
+    local response=""
+
+    if [[ "$model" == deepseek-* ]]; then
+        local deepseek_key="${DEEPSEEK_API_KEY:-}"
+        if [ -z "$deepseek_key" ] || [ "$deepseek_key" = '""' ] || [ "$deepseek_key" = "''" ]; then
+            echo "ERROR: DEEPSEEK_API_KEY no configurada. Executa: platform config"
+            exit 1
+        fi
+
+        local litellm_host="${LITELLM_HOST:-127.0.0.1}"
+        local litellm_port="${LITELLM_PORT:-4000}"
+        local litellm_key="${LITELLM_MASTER_KEY:-sk-local-platform}"
+        local base_url="http://${litellm_host}:${litellm_port}"
+
+        echo "Consultant $model via LiteLLM..."
+        echo ""
+
+        local response_file
+        response_file=$(mktemp)
+        local prompt_json
+        prompt_json=$(python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" <<< "$full_prompt")
+        local http_code
+        http_code=$(curl -s -o "$response_file" -w "%{http_code}" \
+            -X POST "$base_url/v1/chat/completions" \
+            -H "Authorization: Bearer $litellm_key" \
+            -H "Content-Type: application/json" \
+            -d "{\"model\":\"$model\",\"messages\":[{\"role\":\"user\",\"content\":$prompt_json}],\"max_tokens\":4096}" \
+            2>/dev/null || echo "000")
+
+        if [ "$http_code" = "200" ]; then
+            response=$(python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+if 'error' in d:
+    print('ERROR:', d['error'].get('message', 'error desconegut'))
+else:
+    print(d['choices'][0]['message']['content'])
+" < "$response_file")
+            echo "$response"
+        else
+            response="ERROR HTTP $http_code — LiteLLM no disponible o model incorrecte."
+            echo "$response"
+        fi
+        rm -f "$response_file"
+
+    else
+        # Claude → instrucció manual
+        response="Obre Claude Code en aquest projecte i executa aquesta tasca.
+
+Prompt preparat:
+
+$full_prompt"
+        echo "Model recomanat: $model"
+        echo "Claude via LiteLLM no s'usa per defecte."
+        echo ""
+        echo "Obre Claude Code en aquest projecte i executa aquesta tasca."
+        echo ""
+        echo "Prompt preparat (també guardat al fitxer de tasca):"
+        echo "---"
+        echo "$full_prompt"
+        echo "---"
+    fi
+
+    # Guardar fitxer de tasca
+    local title
+    title=$(echo "$task_desc" | cut -c1-60)
+
+    cat > "$task_file" <<TASKEOF
+# Tasca: $title
+
+Data: $(date '+%Y-%m-%d %H:%M:%S')
+Projecte: $project_name
+Model recomanat: $model
+Categoria: $category
+
+## Prompt
+
+$task_desc
+
+## Context usat
+
+- Stack: ${stack:-no disponible}
+- Skills actives: ${skills:-cap}
+- Estat actual: ${estat:-no disponible}
+
+## Resposta del model
+
+$response
+
+## Estat
+
+Implementat: no
+Verificat: no
+Completat: no
+
+## Notes
+
+-
+TASKEOF
+
+    echo ""
+    echo "Tasca guardada: $task_file"
+    echo ""
+}
+
+# ============================================================
 # Sistema i models
 # ============================================================
 
@@ -585,6 +951,42 @@ cmd_doctor() {
         check_ok "LiteLLM config.yaml existeix"
     else
         check_fail "LiteLLM config.yaml no existeix"
+    fi
+
+    # LiteLLM reachable + models DeepSeek
+    local litellm_host="${LITELLM_HOST:-127.0.0.1}"
+    local litellm_port="${LITELLM_PORT:-4000}"
+    local litellm_key="${LITELLM_MASTER_KEY:-sk-local-platform}"
+    local base_url="http://${litellm_host}:${litellm_port}"
+    local lm_reachable=false
+    local http_health
+    http_health=$(curl -s -o /dev/null -w "%{http_code}" \
+        --max-time 3 "$base_url/health" 2>/dev/null || echo "000")
+    if [ "$http_health" = "200" ] || [ "$http_health" = "307" ] || [ "$http_health" = "401" ]; then
+        check_ok "LiteLLM accessible a $base_url"
+        lm_reachable=true
+    else
+        check_warn "LiteLLM no accessible a $base_url (HTTP $http_health). Arrenca'l: platform models start"
+    fi
+
+    if [ "$lm_reachable" = true ]; then
+        for ds_model in deepseek-v4-pro deepseek-v4-flash; do
+            local rf
+            rf=$(mktemp)
+            local hc
+            hc=$(curl -s -o "$rf" -w "%{http_code}" --max-time 10 \
+                -X POST "$base_url/v1/chat/completions" \
+                -H "Authorization: Bearer $litellm_key" \
+                -H "Content-Type: application/json" \
+                -d "{\"model\":\"$ds_model\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":10}" \
+                2>/dev/null || echo "000")
+            if [ "$hc" = "200" ] && ! grep -q '"error"' "$rf" 2>/dev/null; then
+                check_ok "$ds_model operatiu"
+            else
+                check_warn "$ds_model no respon correctament (HTTP $hc)"
+            fi
+            rm -f "$rf"
+        done
     fi
 
     # API keys
@@ -780,7 +1182,7 @@ cmd_models() {
 
 if [ $# -eq 0 ]; then
     show_menu
-    read -p "  Tria una opció (1-13): " choice
+    read -p "  Tria una opció (1-16): " choice
     echo ""
     case "$choice" in
         1)
@@ -837,6 +1239,21 @@ if [ $# -eq 0 ]; then
             cmd_models "$maction"
             ;;
         13)
+            read -p "  Descripció de la tasca: " tdesc
+            cmd_route "$tdesc"
+            ;;
+        14)
+            echo "  Models: deepseek-v4-pro, deepseek-v4-flash, claude-sonnet, claude-haiku"
+            read -p "  Model: " mname
+            read -p "  Prompt: " mprompt
+            cmd_ask "$mname" "$mprompt"
+            ;;
+        15)
+            read -p "  Nom del projecte: " pname
+            read -p "  Descripció de la tasca: " tdesc
+            cmd_task "$pname" "$tdesc"
+            ;;
+        16)
             echo "  Fins aviat."
             exit 0
             ;;
@@ -897,6 +1314,20 @@ else
         models)
             shift
             cmd_models "${1:-}"
+            ;;
+        route)
+            shift
+            cmd_route "$@"
+            ;;
+        ask)
+            shift
+            if [ $# -lt 2 ]; then echo "Ús: platform ask <model> \"<prompt>\""; exit 1; fi
+            cmd_ask "$@"
+            ;;
+        task)
+            shift
+            if [ $# -lt 2 ]; then echo "Ús: platform task <projecte> \"<descripció>\""; exit 1; fi
+            cmd_task "$@"
             ;;
         help|--help|-h)
             show_menu

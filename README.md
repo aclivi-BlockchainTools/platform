@@ -265,6 +265,72 @@ platform/scripts/platform.sh v0 app-shell <projecte>
 
 El prompt inclou context del projecte (si existeix) i és llest per copiar a v0.dev.
 
+## Routing Engine v1
+
+La plataforma pot classificar tasques, triar model i executar consultes via LiteLLM. DeepSeek V4 Pro és el model principal operatiu, no només documentat.
+
+### `platform route`
+
+Classifica una tasca i mostra el model recomanat. No executa res.
+
+```bash
+platform route "crear CRUD de clients amb React i Express"
+```
+
+Retorna: categoria, model recomanat, motiu i alternativa.
+
+### `platform ask`
+
+Executa un prompt directament contra un model via LiteLLM.
+
+```bash
+platform ask deepseek-v4-pro "Crea un esquema d'API REST per clients"
+```
+
+Models acceptats: `deepseek-v4-pro`, `deepseek-v4-flash`, `claude-sonnet`, `claude-haiku`
+
+Si el model és Claude i `ANTHROPIC_API_KEY` no està configurada, mostra instrucció per usar Claude Code amb login de compte.
+
+### `platform task`
+
+Combina classificació + consulta a LiteLLM + persistència. Genera un pla o resposta i el guarda a `docs/tasks/` del projecte.
+
+```bash
+platform task demo-crm "Crear CRUD de clients amb frontend i backend"
+```
+
+- Si el model és **DeepSeek**: consulta LiteLLM amb context del projecte (stack, skills, estat), guarda resposta a `docs/tasks/`.
+- Si el model és **Claude**: guarda el prompt preparat i mostra instrucció per usar Claude Code.
+
+**Important:** `platform task` NO modifica codi. Genera plans, respostes o prompts de treball.
+
+### Regles de routing
+
+| Tipus de tasca | Model |
+|----------------|-------|
+| Implementació, CRUD, API, React, debugging | `deepseek-v4-pro` |
+| Boilerplate, petites modificacions, repetitiu | `deepseek-v4-flash` |
+| Revisió, seguretat, auditoria, decisions d'alt impacte | `claude-sonnet` |
+| Resums, classificació, consultes ràpides | `claude-haiku` |
+| L'usuari diu "usa Claude" | `claude-sonnet` |
+| L'usuari diu "usa Flash" | `deepseek-v4-flash` |
+
+### Flux recomanat
+
+```
+platform task demo-crm "Crear CRUD de clients"
+        ↓
+DeepSeek V4 Pro genera pla/resposta via LiteLLM
+        ↓
+Claude Code integra o revisa
+        ↓
+task-completion verifica
+```
+
+### Format de fitxers `docs/tasks/`
+
+Cada execució de `platform task` guarda un fitxer `YYYY-MM-DD-HHMMSS-<slug>.md` al directori `docs/tasks/` del projecte amb: prompt, context usat, resposta del model i estat (Implementat/Verificat/Completat).
+
 ## Skills universals (8)
 
 | Skill | Funció |
