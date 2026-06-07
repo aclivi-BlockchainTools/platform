@@ -4,7 +4,7 @@ set -euo pipefail
 # platform.sh — Eina principal de la plataforma de desenvolupament assistit per IA
 # Ús: platform.sh [new|import|open|status|skills|activate|v0|resume] [args...]
 
-PLATFORM_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PLATFORM_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 PROJECTS_DIR="${PROJECTS_DIR:-$HOME/Projects}"
 SCRIPTS_DIR="$PLATFORM_DIR/scripts"
 PLATFORM_CONFIG_DIR="$HOME/.platform"
