@@ -11,14 +11,16 @@ const PROJECTS_DIR = process.env.PROJECTS_DIR || join(homedir(), 'Projects');
 // ============================================================
 
 const toolLoaders = {
-  platform_resume_project:   () => import('./tools/resume-project.js'),
-  platform_route_task:       () => import('./tools/route-task.js'),
-  platform_ask_model:        () => import('./tools/ask-model.js'),
-  platform_create_task:      () => import('./tools/create-task.js'),
-  platform_save_task:        () => import('./tools/save-task.js'),
-  platform_list_projects:    () => import('./tools/list-projects.js'),
-  platform_list_domain_skills: () => import('./tools/list-domain-skills.js'),
-  platform_activate_skill:   () => import('./tools/activate-skill.js')
+  platform_current_project:     () => import('./tools/current-project.js'),
+  platform_resume_project:      () => import('./tools/resume-project.js'),
+  platform_route_task:          () => import('./tools/route-task.js'),
+  platform_ask_model:           () => import('./tools/ask-model.js'),
+  platform_create_task:         () => import('./tools/create-task.js'),
+  platform_save_task:           () => import('./tools/save-task.js'),
+  platform_list_projects:       () => import('./tools/list-projects.js'),
+  platform_list_domain_skills:   () => import('./tools/list-domain-skills.js'),
+  platform_activate_skill:      () => import('./tools/activate-skill.js'),
+  platform_check_completion:    () => import('./tools/check-completion.js')
 };
 
 const toolCache = {};
@@ -37,6 +39,10 @@ async function getTool(name) {
 // ============================================================
 
 const toolSchemas = {
+  platform_current_project: {
+    description: "Detecta el projecte actual segons el directori de treball. Usa-ho al principi de cada sessió per saber on som.",
+    inputSchema: { type: 'object', properties: {} }
+  },
   platform_resume_project: {
     description: "Mostra l'estat complet d'un projecte: stack, estat actual, model strategy, skills actives, última tasca i pròxim pas.",
     inputSchema: { type: 'object', properties: { projectName: { type: 'string', description: 'Nom del projecte a ~/Projects/' } }, required: ['projectName'] }
@@ -68,6 +74,10 @@ const toolSchemas = {
   platform_activate_skill: {
     description: "Activa una skill de domini al projecte. Requereix confirmació explícita de l'usuari. No activar mai automàticament.",
     inputSchema: { type: 'object', properties: { projectName: { type: 'string', description: 'Nom del projecte' }, skillName: { type: 'string', description: 'Nom de la skill' } }, required: ['projectName', 'skillName'] }
+  },
+  platform_check_completion: {
+    description: "Verifica l'estat de completitud (Implementat/Verificat/Completat) d'una tasca o de totes les tasques d'un projecte.",
+    inputSchema: { type: 'object', properties: { projectName: { type: 'string', description: 'Nom del projecte' }, taskFilename: { type: 'string', description: 'Fitxer de tasca específic (opcional)' } }, required: ['projectName'] }
   }
 };
 

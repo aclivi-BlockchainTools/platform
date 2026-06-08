@@ -45,7 +45,9 @@ show_menu() {
     echo " 13. Routing               platform route \"<tasca>\""
     echo " 14. Ask model             platform ask <model> \"<prompt>\""
     echo " 15. Task projecte         platform task <projecte> \"<tasca>\""
-    echo " 16. Sortir"
+    echo " 16. Instal·lar perfil     platform install-claude-profile"
+    echo " 17. Instal·lar MCP        platform mcp-install"
+    echo " 18. Sortir"
     echo ""
 }
 
@@ -1305,6 +1307,90 @@ cmd_models() {
 }
 
 # ============================================================
+# Instal·lació del perfil global Claude
+# ============================================================
+
+cmd_install_claude_profile() {
+    local global_template="$PLATFORM_DIR/templates/global-claude/CLAUDE.md"
+    local target="$HOME/.claude/CLAUDE.md"
+
+    echo ""
+    echo "=== Instal·lant perfil global Claude ==="
+    echo ""
+
+    if [ ! -f "$global_template" ]; then
+        echo "ERROR: Plantilla global no trobada a $global_template"
+        exit 1
+    fi
+
+    # Backup si ja existeix
+    if [ -f "$target" ]; then
+        local backup_ts
+        backup_ts=$(date +%Y%m%d-%H%M%S)
+        cp "$target" "$HOME/.claude/CLAUDE.md.bak-$backup_ts"
+        echo "Backup creat: ~/.claude/CLAUDE.md.bak-$backup_ts"
+    fi
+
+    cp "$global_template" "$target"
+    echo "Perfil global instal·lat: ~/.claude/CLAUDE.md"
+    echo ""
+    echo "Aquest perfil s'aplica a TOTS els projectes."
+    echo "Inclou: política de models, ús obligatori de Platform MCP, airlock, task completion."
+    echo ""
+}
+
+# ============================================================
+# Registre del MCP a Claude Code
+# ============================================================
+
+cmd_mcp_install() {
+    local mcp_server="$PLATFORM_DIR/mcp-server/index.js"
+
+    echo ""
+    echo "=== Registrant Platform MCP a Claude Code ==="
+    echo ""
+
+    if [ ! -f "$mcp_server" ]; then
+        echo "ERROR: MCP server no trobat a $mcp_server"
+        exit 1
+    fi
+
+    # Verificar que claude està instal·lat
+    if ! command -v claude &> /dev/null; then
+        echo "ERROR: Claude Code no instal·lat."
+        echo "  Instal·la'l: npm install -g @anthropic-ai/claude-code"
+        exit 1
+    fi
+
+    echo "Executant: claude mcp add platform -- node $mcp_server"
+    echo ""
+
+    if claude mcp add platform -- node "$mcp_server" 2>&1; then
+        echo ""
+        echo "=== Platform MCP registrat correctament ==="
+        echo ""
+        echo "Verifica amb: claude mcp list"
+        echo ""
+        echo "Tools disponibles:"
+        echo "  platform_current_project     Detecta projecte actual"
+        echo "  platform_resume_project      Estat complet del projecte"
+        echo "  platform_route_task          Classificar tasca"
+        echo "  platform_ask_model           Enviar prompt a LiteLLM"
+        echo "  platform_create_task         Crear tasca: classificar + executar + guardar"
+        echo "  platform_save_task           Guardar tasca manualment"
+        echo "  platform_list_projects       Llistar projectes"
+        echo "  platform_list_domain_skills  Skills disponibles"
+        echo "  platform_activate_skill      Activar skill (airlock)"
+        echo "  platform_check_completion    Verificar DoD"
+        echo ""
+    else
+        echo "ERROR: No s'ha pogut registrar el MCP."
+        echo "Prova manualment: claude mcp add platform -- node $mcp_server"
+        exit 1
+    fi
+}
+
+# ============================================================
 # Punt d'entrada
 # ============================================================
 
@@ -1382,6 +1468,12 @@ if [ $# -eq 0 ]; then
             cmd_task "$pname" "$tdesc"
             ;;
         16)
+            cmd_install_claude_profile
+            ;;
+        17)
+            cmd_mcp_install
+            ;;
+        18)
             echo "  Fins aviat."
             exit 0
             ;;
@@ -1456,6 +1548,12 @@ else
             shift
             if [ $# -lt 2 ]; then echo "Ús: platform task <projecte> \"<descripció>\""; exit 1; fi
             cmd_task "$@"
+            ;;
+        install-claude-profile)
+            cmd_install_claude_profile
+            ;;
+        mcp-install)
+            cmd_mcp_install
             ;;
         help|--help|-h)
             show_menu

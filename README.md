@@ -16,8 +16,12 @@ platform config
 platform doctor
 platform models start
 platform models test
+platform mcp-install              # Registra el MCP a Claude Code
+platform install-claude-profile   # Instal·la perfil global (opcional, recomanat)
 claude
 ```
+
+Després d'instal·lar, dins Claude Code Platform s'usa automàticament. No cal recordar comandes.
 
 ## Modes d'ús de Claude
 

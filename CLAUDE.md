@@ -85,42 +85,56 @@ Escalar a Claude només quan:
 
 **Frase guia:** DeepSeek V4 Pro és el model principal de desenvolupament. Claude s'utilitza quan aporta una validació premium o una perspectiva diferent.
 
+## Ús obligatori de Platform
+
+Quan treballis dins Claude Code en qualsevol projecte de `~/Projects/`:
+
+1. **Identifica el projecte** amb `platform_current_project`.
+2. **Consulta l'estat** amb `platform_resume_project` abans d'analitzar, planificar o implementar.
+3. **Classifica la tasca** amb `platform_route_task` abans de decidir model.
+4. **Crea/actualitza tasques** amb `platform_create_task` o `platform_save_task`.
+5. **Model principal: DeepSeek V4 Pro**. Si el routing recomana DeepSeek, usa `platform_ask_model` o `platform_create_task`.
+6. **Claude és per editar fitxers, revisar, auditar.** No facis tu el que DeepSeek pot fer.
+7. **No demanis a l'usuari executar `platform` manualment** si ho pots fer amb el MCP.
+8. **Guarda sempre** a `docs/tasks/`. Implementat ≠ Verificat ≠ Completat.
+9. **Respecta l'airlock.** No activis skills de domini sense confirmació.
+10. **Al principi de cada sessió**, detecta el projecte i consulta el seu estat.
+
 ## Platform MCP
 
-El MCP server (`mcp-server/`) exposa 8 tools per treballar directament des de Claude Code sense haver d'executar `platform` manualment.
+El MCP server (`mcp-server/`) exposa 10 tools. No cal executar `platform` manualment.
 
-### Tools disponibles
+### Tools
 
 | Tool | Què fa |
 |------|--------|
-| `platform_resume_project` | Estat complet d'un projecte (stack, estat, skills, tasques) |
+| `platform_current_project` | Detecta el projecte actual segons el directori |
+| `platform_resume_project` | Estat complet (stack, estat, skills, tasques) |
 | `platform_route_task` | Classificar tasca i recomanar model |
 | `platform_ask_model` | Enviar prompt a un model via LiteLLM |
-| `platform_create_task` | Crear tasca completa: classificar + executar + guardar |
+| `platform_create_task` | Crear tasca: classificar + executar + guardar |
 | `platform_save_task` | Guardar manualment una tasca a docs/tasks/ |
-| `platform_list_projects` | Llistar tots els projectes a ~/Projects/ |
+| `platform_list_projects` | Llistar tots els projectes |
 | `platform_list_domain_skills` | Llistar skills de domini disponibles |
-| `platform_activate_skill` | Activar una skill de domini (amb confirmació) |
+| `platform_activate_skill` | Activar skill de domini (amb confirmació) |
+| `platform_check_completion` | Verificar DoD d'una tasca o projecte |
 
-### Quan usar cada tool
+### Instal·lació
 
-Quan treballis dins Claude Code:
-- Usa `platform_resume_project` per entendre el projecte abans de començar.
-- Usa `platform_route_task` per classificar tasques i decidir el model.
-- Usa `platform_create_task` quan l'usuari demani planificació, anàlisi o següents passos.
-- Usa `platform_ask_model` per enviar treball concret a DeepSeek (el model principal).
-- Usa `platform_save_task` per guardar decisions, resums o tasques manualment.
-- Usa `platform_list_projects` per veure tots els projectes disponibles.
-- Usa `platform_list_domain_skills` per veure quines skills de domini hi ha.
-- No usis `platform_activate_skill` sense confirmació explícita de l'usuari.
-- No demanis a l'usuari que executi `platform task` manualment si pots usar el MCP.
+```bash
+platform mcp-install
+```
 
-### Registre
-
-Per instal·lar el MCP:
+Equivalent manual:
 
 ```bash
 claude mcp add platform -- node /home/usuari/platform/mcp-server/index.js
+```
+
+Per instal·lar el perfil global Claude (opcional però recomanat):
+
+```bash
+platform install-claude-profile
 ```
 
 ## Airlock
