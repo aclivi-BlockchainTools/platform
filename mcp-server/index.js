@@ -20,7 +20,11 @@ const toolLoaders = {
   platform_list_projects:       () => import('./tools/list-projects.js'),
   platform_list_domain_skills:   () => import('./tools/list-domain-skills.js'),
   platform_activate_skill:      () => import('./tools/activate-skill.js'),
-  platform_check_completion:    () => import('./tools/check-completion.js')
+  platform_check_completion:    () => import('./tools/check-completion.js'),
+  platform_before_action:       () => import('./tools/before-action.js'),
+  platform_after_action:        () => import('./tools/after-action.js'),
+  platform_can_commit:          () => import('./tools/can-commit.js'),
+  platform_update_completion:   () => import('./tools/update-completion.js')
 };
 
 const toolCache = {};
@@ -78,6 +82,22 @@ const toolSchemas = {
   platform_check_completion: {
     description: "Verifica l'estat de completitud (Implementat/Verificat/Completat) d'una tasca o de totes les tasques d'un projecte.",
     inputSchema: { type: 'object', properties: { projectName: { type: 'string', description: 'Nom del projecte' }, taskFilename: { type: 'string', description: 'Fitxer de tasca específic (opcional)' } }, required: ['projectName'] }
+  },
+  platform_before_action: {
+    description: "ABANS de qualsevol acció significativa (implementar, commit, deploy, analitzar). Detecta el tipus d'acció, risc, model recomanat, i si cal bloquejar (ex: commit sense verificació). CRIDAR SEMPRE abans d'actuar.",
+    inputSchema: { type: 'object', properties: { projectName: { type: 'string', description: 'Nom del projecte' }, userRequest: { type: 'string', description: 'Què ha demanat fer l\'usuari' }, intendedAction: { type: 'string', description: 'Què vols fer exactament (implementar, commit, analitzar, verificar...)' } }, required: ['projectName', 'userRequest'] }
+  },
+  platform_after_action: {
+    description: "DESPRÉS d'una acció significativa. Actualitza l'estat de la tasca (Implementat/Verificat/Completat) i guarda notes. Retorna el següent pas.",
+    inputSchema: { type: 'object', properties: { projectName: { type: 'string', description: 'Nom del projecte' }, userRequest: { type: 'string', description: 'Què havia demanat l\'usuari' }, actionTaken: { type: 'string', description: 'Què has fet' }, filesChanged: { type: 'string', description: 'Fitxers modificats (opcional)' }, verificationRun: { type: 'string', description: 'Resultat de verificació si s\'ha executat (opcional)' }, result: { type: 'string', description: 'Resultat de l\'acció (opcional)' } }, required: ['projectName'] }
+  },
+  platform_can_commit: {
+    description: "Comprova si es pot fer commit. Verifica tasca associada, estat de verificació, i resum de tests. Bloqueja si no hi ha verificació.",
+    inputSchema: { type: 'object', properties: { projectName: { type: 'string', description: 'Nom del projecte' }, gitStatus: { type: 'string', description: 'Output de git status (opcional)' }, verificationSummary: { type: 'string', description: 'Resum de verificació: què s\'ha provat i resultat (opcional)' } }, required: ['projectName'] }
+  },
+  platform_update_completion: {
+    description: "Actualitza l'estat DoD (Implementat/Verificat/Completat) d'una tasca existent. Si no s'especifica taskFile, actualitza l'última tasca.",
+    inputSchema: { type: 'object', properties: { projectName: { type: 'string', description: 'Nom del projecte' }, taskFile: { type: 'string', description: 'Fitxer de tasca (opcional, default: última)' }, implemented: { type: 'string', description: 'sí/no/parcial' }, verified: { type: 'string', description: 'sí/no' }, completed: { type: 'string', description: 'sí/no' }, notes: { type: 'string', description: 'Notes addicionals' } }, required: ['projectName'] }
   }
 };
 

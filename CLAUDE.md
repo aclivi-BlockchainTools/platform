@@ -85,20 +85,74 @@ Escalar a Claude només quan:
 
 **Frase guia:** DeepSeek V4 Pro és el model principal de desenvolupament. Claude s'utilitza quan aporta una validació premium o una perspectiva diferent.
 
-## Ús obligatori de Platform
+## Ús obligatori de Platform — TOTES les accions
 
-Quan treballis dins Claude Code en qualsevol projecte de `~/Projects/`:
+Platform MCP és la capa de control obligatòria. No facis res significatiu sense consultar-la.
 
-1. **Identifica el projecte** amb `platform_current_project`.
-2. **Consulta l'estat** amb `platform_resume_project` abans d'analitzar, planificar o implementar.
-3. **Classifica la tasca** amb `platform_route_task` abans de decidir model.
-4. **Crea/actualitza tasques** amb `platform_create_task` o `platform_save_task`.
-5. **Model principal: DeepSeek V4 Pro**. Si el routing recomana DeepSeek, usa `platform_ask_model` o `platform_create_task`.
-6. **Claude és per editar fitxers, revisar, auditar.** No facis tu el que DeepSeek pot fer.
-7. **No demanis a l'usuari executar `platform` manualment** si ho pots fer amb el MCP.
-8. **Guarda sempre** a `docs/tasks/`. Implementat ≠ Verificat ≠ Completat.
-9. **Respecta l'airlock.** No activis skills de domini sense confirmació.
-10. **Al principi de cada sessió**, detecta el projecte i consulta el seu estat.
+### Flux obligatori per cada ordre
+
+```
+1. platform_before_action   ← ABANS de qualsevol acció
+2. Execució amb Claude Code
+3. Verificació (si aplica)
+4. platform_after_action    ← DESPRÉS, actualitza DoD
+5. platform_can_commit      ← ABANS de commit, verifica permisos
+```
+
+### Abans de cada acció significativa
+
+Crida `platform_before_action` ABANS de:
+- analitzar codi o projecte
+- planificar feina
+- implementar funcionalitats
+- modificar fitxers
+- executar tests
+- fer commit
+- fer deploy
+- activar skills
+- declarar res completat
+- qualsevol acció que modifiqui el repositori
+
+`platform_before_action` classifica l'acció, avalua el risc i pot **bloquejar** accions perilloses (ex: commit sense verificació).
+
+### Per commits
+
+```
+1. platform_before_action   ← detecta acció commit
+2. git status / git diff    ← mira què hi ha
+3. Verificació mínima       ← tests, build, o comprovació manual
+4. platform_can_commit      ← si allowed=false, NO facis commit
+5. git commit (només si allowed=true)
+6. platform_after_action    ← documenta el commit
+```
+
+**No facis commit només perquè l'usuari diu "fes-ho".**
+"Fes-ho" vol dir:
+- prepara l'acció
+- valida amb `platform_before_action`
+- executa
+- verifica
+- documenta amb `platform_after_action`
+- commit només si `platform_can_commit` ho permet
+
+### Models
+
+| Model | Rol | Quan |
+|-------|-----|------|
+| DeepSeek V4 Pro | Principal | Anàlisi, planificació, debugging, CRUD |
+| DeepSeek V4 Flash | Ràpid | Tasques repetitives, boilerplate |
+| Claude Sonnet | Editor/Auditor | Editar fitxers, revisar, commit, decisions crítiques |
+| Claude Haiku | Lleuger | Resums, classificació |
+
+### Task Completion (OBLIGATORI)
+
+Una tasca NO està feta fins que:
+- **Implementat: sí** (codi escrit)
+- **Verificat: sí** (tests passen o comprovació manual)
+- **Completat: sí** (tot el cicle tancat)
+
+Usa `platform_update_completion` per marcar cada estat.
+Usa `platform_check_completion` per verificar l'estat actual.
 
 ## Platform MCP
 

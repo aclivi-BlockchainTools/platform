@@ -352,9 +352,43 @@ task-completion verifica
 
 Cada execució de `platform task` guarda un fitxer `YYYY-MM-DD-HHMMSS-<slug>.md` al directori `docs/tasks/` del projecte amb: prompt, context usat, resposta del model i estat (Implementat/Verificat/Completat).
 
+## Platform com a capa obligatòria dins Claude Code
+
+Platform MCP és el controlador de context, routing, verificació i completitud. Claude Code és l'editor/executor.
+
+### Flux obligatori
+
+Cada ordre de l'usuari passa per:
+
+1. `platform_before_action` — classifica, avalua risc, pot bloquejar
+2. Claude Code executa l'acció
+3. Verificació (tests, build o manual)
+4. `platform_after_action` — actualitza DoD, guarda notes
+5. `platform_can_commit` — permet o bloqueja commit
+
+### Exemple real
+
+Usuari: "afegeix validació al formulari de login"
+
+Claude:
+1. `platform_before_action` → implementació, DeepSeek V4 Pro, risc mitjà
+2. Implementa el codi
+3. Verifica (test o comprovació)
+4. `platform_after_action` → Implementat: sí, Verificat: sí
+5. `platform_can_commit` → allowed: true → commit
+
+### Per commits
+
+"Fes-ho" o "commita" NO implica fer commit directe. Cal:
+
+1. `platform_before_action` detecta acció commit
+2. Si no hi ha verificació → **bloqueja**
+3. Verificar → `platform_update_completion`
+4. `platform_can_commit` → si allowed, commit
+
 ## Platform MCP Server
 
-Integració nativa amb Claude Code via MCP (Model Context Protocol). 8 tools que permeten treballar sense haver d'executar `platform` manualment.
+Integració nativa amb Claude Code via MCP (Model Context Protocol). 14 tools.
 
 ### Instal·lació
 

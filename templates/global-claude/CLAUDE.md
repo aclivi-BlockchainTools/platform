@@ -4,33 +4,62 @@
 
 Respon en català, concís i directe. Sense adornos ni resums al final si no es demanen.
 
-## Platform obligatori
+## Platform obligatori — TOTES les accions
 
-Quan estiguis dins un projecte de `~/Projects/`:
+Platform MCP és la capa de control obligatòria. No facis res significatiu sense consultar-la.
 
-1. **Identifica el projecte** amb `platform_current_project` al principi de cada sessió.
-2. **Consulta l'estat** amb `platform_resume_project` abans de qualsevol anàlisi, planificació o implementació.
-3. **Classifica la tasca** amb `platform_route_task` abans de decidir model.
-4. **Crea/actualitza tasques** amb `platform_create_task` o `platform_save_task`.
-5. **Model principal: DeepSeek V4 Pro**. Si el routing recomana DeepSeek, usa `platform_ask_model` o `platform_create_task`. No processis tu el que DeepSeek pot fer.
-6. **Claude Sonnet és auditor/consultor**, no model principal. Usa'l només per: editar fitxers, revisar canvis, auditoria crítica, decisions d'alt impacte, o quan DeepSeek no resol.
-7. **No demanis a l'usuari executar `platform` manualment** si ho pots fer amb el MCP.
-8. **Respecta l'airlock**: no activis skills de domini sense confirmació explícita.
-9. **Task Completion**: Implementat ≠ Verificat ≠ Completat. No declaris una tasca completada si no està verificada.
-10. **Guarda sempre el resultat** a `docs/tasks/` perquè quedi traçabilitat.
+### Flux obligatori per cada ordre
 
-## Simplicitat
+```
+1. platform_before_action   ← ABANS de qualsevol acció
+2. Execució amb Claude Code
+3. Verificació (si aplica)
+4. platform_after_action    ← DESPRÉS, actualitza DoD
+5. platform_can_commit      ← ABANS de commit
+```
+
+### Abans de cada acció
+
+Crida `platform_before_action` SEMPRE abans de:
+- analitzar, planificar, implementar, modificar fitxers
+- executar tests, fer commit, fer deploy
+- activar skills, declarar res completat
+- qualsevol acció que modifiqui el repositori
+
+### Per commits
+
+```
+1. platform_before_action
+2. git status / git diff
+3. Verificació mínima
+4. platform_can_commit      ← si allowed=false, NO facis commit
+5. git commit (només si allowed=true)
+6. platform_after_action
+```
+
+**No facis commit perquè l'usuari diu "fes-ho".**
+Interpreta "fes-ho" com: prepara → valida → executa → verifica → documenta → commit només si permès.
+
+### Models
+
+| Model | Rol |
+|-------|-----|
+| DeepSeek V4 Pro | Principal — anàlisi, planificació, debugging |
+| DeepSeek V4 Flash | Ràpid — repetitiu, boilerplate |
+| Claude Sonnet | Editor/Auditor — fitxers, revisió, commit |
+| Claude Haiku | Lleuger — resums, classificació |
+
+### Task Completion (OBLIGATORI)
+
+Implementat ≠ Verificat ≠ Completat.
+Usa `platform_update_completion` i `platform_check_completion`.
+
+### Airlock
+
+No activis skills de domini sense confirmació explícita.
+
+### Simplicitat
 
 - No proposis arquitectures complexes si n'hi ha prou amb una funció.
 - No afegeixis dependències si el stack existent ja ho cobreix.
-- No facis sobreenginyeria.
 - Segueix els patrons i decisions clau del CLAUDE.md del projecte.
-
-## Models
-
-| Model | Rol | Quan |
-|-------|-----|------|
-| DeepSeek V4 Pro | Principal | Anàlisi, planificació, debugging, CRUD, arquitectura |
-| DeepSeek V4 Flash | Ràpid | Tasques repetitives, boilerplate, tests |
-| Claude Sonnet | Auditor | Revisió, seguretat, decisions crítiques, edició de fitxers |
-| Claude Haiku | Lleuger | Resums, classificació, consultes ràpides |
