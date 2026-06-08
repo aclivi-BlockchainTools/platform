@@ -85,55 +85,91 @@ Escalar a Claude només quan:
 
 **Frase guia:** DeepSeek V4 Pro és el model principal de desenvolupament. Claude s'utilitza quan aporta una validació premium o una perspectiva diferent.
 
-## Ús obligatori de Platform — TOTES les accions
+## Protocol Platform MCP obligatori
 
-Platform MCP és la capa de control obligatòria. No facis res significatiu sense consultar-la.
+Quan estiguis dins un projecte de `~/Projects/`, Platform MCP és **obligatori**. No és opcional. No és "si ho recordes". És **cada acció**.
 
-### Flux obligatori per cada ordre
+### Abans de qualsevol acció significativa
 
-```
-1. platform_before_action   ← ABANS de qualsevol acció
-2. Execució amb Claude Code
-3. Verificació (si aplica)
-4. platform_after_action    ← DESPRÉS, actualitza DoD
-5. platform_can_commit      ← ABANS de commit, verifica permisos
-```
+Crida `platform_before_action` **sempre** abans de:
 
-### Abans de cada acció significativa
+- modificar fitxers
+- implementar codi
+- executar tests
+- fer commits
+- fer refactors
+- declarar una tasca completada
+- qualsevol cosa que canviï l'estat del repositori
 
-Crida `platform_before_action` ABANS de:
-- analitzar codi o projecte
-- planificar feina
-- implementar funcionalitats
+`platform_before_action` classifica l'acció, avalua el risc i pot **bloquejar** accions perilloses (ex: commit sense verificació). **Respecta el bloqueig.** Si blocked=true, no continuïs.
+
+### Després de qualsevol acció significativa
+
+Crida `platform_after_action` **sempre** després de:
+
 - modificar fitxers
 - executar tests
-- fer commit
-- fer deploy
-- activar skills
-- declarar res completat
-- qualsevol acció que modifiqui el repositori
+- fer commits
+- detectar errors
+- completar parcialment una tasca
+- qualsevol acció que hagi canviat l'estat del projecte
 
-`platform_before_action` classifica l'acció, avalua el risc i pot **bloquejar** accions perilloses (ex: commit sense verificació).
+### Abans de dir "fet"
 
-### Per commits
+**No diguis "fet", "completat", "llest" o equivalent si no has:**
+
+1. verificat (tests, build, o comprovació manual documentada), o
+2. marcat explícitament amb `platform_update_completion`:
+   - Implementat: sí
+   - Verificat: no
+   - Completat: no
+
+### Commits — protocol estricte
+
+Abans de qualsevol commit:
 
 ```
-1. platform_before_action   ← detecta acció commit
-2. git status / git diff    ← mira què hi ha
-3. Verificació mínima       ← tests, build, o comprovació manual
-4. platform_can_commit      ← si allowed=false, NO facis commit
-5. git commit (només si allowed=true)
-6. platform_after_action    ← documenta el commit
+1. platform_before_action    ← si blocked=true, ATURA'T
+2. Verificació mínima        ← tests, build, o comprovació manual
+3. platform_can_commit       ← si allowed=false, NO facis commit
+4. git commit (només si allowed=true)
+5. platform_after_action     ← documenta el commit
 ```
 
-**No facis commit només perquè l'usuari diu "fes-ho".**
-"Fes-ho" vol dir:
-- prepara l'acció
-- valida amb `platform_before_action`
-- executa
-- verifica
-- documenta amb `platform_after_action`
-- commit només si `platform_can_commit` ho permet
+**No facis commit si `platform_can_commit` retorna allowed=false.**
+**No facis commit sense haver cridat `platform_before_action` primer.**
+
+Si l'usuari diu "fes-ho" o "commita":
+- NO implica fer commit directe
+- Vol dir: prepara → before_action → verifica → can_commit → commit (només si permès) → after_action
+
+### Exemples
+
+**Incorrecte:**
+> "Fet. He modificat ChatView.tsx i fet commit."
+
+**Correcte:**
+> "He modificat ChatView.tsx. Abans de declarar-ho fet:
+> 1. He cridat platform_before_action
+> 2. Cod implementat
+> 3. Executo verificació (build/typecheck)
+> 4. Crido platform_after_action
+> 5. Si tot OK, crido platform_can_commit abans de commit"
+
+**Incorrecte:**
+> "Commito els canvis." [fa git commit directe]
+
+**Correcte:**
+> "Abans de commit:
+> 1. platform_before_action → commit, risc alt
+> 2. Verifico: npm run build → OK
+> 3. platform_can_commit → allowed=true
+> 4. git commit
+> 5. platform_after_action → Implementat: sí, Verificat: sí"
+
+### No demanis a l'usuari
+
+No li demanis que executi `platform` manualment. L'MCP està disponible. Usa'l tu.
 
 ### Models
 
@@ -141,10 +177,10 @@ Crida `platform_before_action` ABANS de:
 |-------|-----|------|
 | DeepSeek V4 Pro | Principal | Anàlisi, planificació, debugging, CRUD |
 | DeepSeek V4 Flash | Ràpid | Tasques repetitives, boilerplate |
-| Claude Sonnet | Editor/Auditor | Editar fitxers, revisar, commit, decisions crítiques |
+| Claude Sonnet | Editor/Auditor | Editar fitxers, revisar, commit |
 | Claude Haiku | Lleuger | Resums, classificació |
 
-### Task Completion (OBLIGATORI)
+### Task Completion
 
 Una tasca NO està feta fins que:
 - **Implementat: sí** (codi escrit)

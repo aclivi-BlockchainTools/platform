@@ -4,41 +4,59 @@
 
 Respon en català, concís i directe. Sense adornos ni resums al final si no es demanen.
 
-## Platform obligatori — TOTES les accions
+## Protocol Platform MCP obligatori
 
-Platform MCP és la capa de control obligatòria. No facis res significatiu sense consultar-la.
+Quan estiguis dins un projecte de `~/Projects/`, Platform MCP és **obligatori**. No és opcional. No és "si ho recordes". És **cada acció**.
 
-### Flux obligatori per cada ordre
+### Abans de qualsevol acció significativa
 
-```
-1. platform_before_action   ← ABANS de qualsevol acció
-2. Execució amb Claude Code
-3. Verificació (si aplica)
-4. platform_after_action    ← DESPRÉS, actualitza DoD
-5. platform_can_commit      ← ABANS de commit
-```
+Crida `platform_before_action` **sempre** abans de:
+- modificar fitxers
+- implementar codi
+- executar tests
+- fer commits
+- fer refactors
+- declarar una tasca completada
 
-### Abans de cada acció
+Si `platform_before_action` retorna `blocked: true`, **no continuïs**.
 
-Crida `platform_before_action` SEMPRE abans de:
-- analitzar, planificar, implementar, modificar fitxers
-- executar tests, fer commit, fer deploy
-- activar skills, declarar res completat
-- qualsevol acció que modifiqui el repositori
+### Després de qualsevol acció significativa
 
-### Per commits
+Crida `platform_after_action` **sempre** després de:
+- modificar fitxers
+- executar tests
+- fer commits
+- detectar errors
+- completar parcialment una tasca
+
+### Abans de dir "fet"
+
+No diguis "fet", "completat" o equivalent si no has:
+1. verificat (tests, build, o comprovació manual), o
+2. marcat explícitament:
+   Implementat: sí
+   Verificat: no
+   Completat: no
+
+### Commits — protocol estricte
 
 ```
 1. platform_before_action
-2. git status / git diff
-3. Verificació mínima
-4. platform_can_commit      ← si allowed=false, NO facis commit
-5. git commit (només si allowed=true)
-6. platform_after_action
+2. Verificació mínima
+3. platform_can_commit       ← si allowed=false, NO facis commit
+4. git commit (només si allowed=true)
+5. platform_after_action
 ```
 
-**No facis commit perquè l'usuari diu "fes-ho".**
-Interpreta "fes-ho" com: prepara → valida → executa → verifica → documenta → commit només si permès.
+L'usuari dient "fes-ho" o "commita" NO implica fer commit directe.
+
+### Exemples
+
+Incorrecte: "Fet. He modificat l'arxiu."
+Correcte: "He modificat l'arxiu. Abans de tancar: verifico, after_action, update_completion."
+
+Incorrecte: "Commito." [fa git commit]
+Correcte: "Abans de commit: before_action → verifico → can_commit → commit → after_action"
 
 ### Models
 
@@ -49,17 +67,11 @@ Interpreta "fes-ho" com: prepara → valida → executa → verifica → documen
 | Claude Sonnet | Editor/Auditor — fitxers, revisió, commit |
 | Claude Haiku | Lleuger — resums, classificació |
 
-### Task Completion (OBLIGATORI)
+### Task Completion
 
 Implementat ≠ Verificat ≠ Completat.
-Usa `platform_update_completion` i `platform_check_completion`.
+Usa `platform_update_completion` per marcar cada estat.
 
 ### Airlock
 
 No activis skills de domini sense confirmació explícita.
-
-### Simplicitat
-
-- No proposis arquitectures complexes si n'hi ha prou amb una funció.
-- No afegeixis dependències si el stack existent ja ho cobreix.
-- Segueix els patrons i decisions clau del CLAUDE.md del projecte.
