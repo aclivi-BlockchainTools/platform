@@ -1362,10 +1362,10 @@ cmd_mcp_install() {
         exit 1
     fi
 
-    echo "Executant: claude mcp add platform -- node $mcp_server"
+    echo "Executant: claude mcp add platform --scope user -- node $mcp_server"
     echo ""
 
-    if claude mcp add platform -- node "$mcp_server" 2>&1; then
+    if claude mcp add platform --scope user -- node "$mcp_server" 2>&1; then
         echo ""
         echo "=== Platform MCP registrat correctament ==="
         echo ""

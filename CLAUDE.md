@@ -128,7 +128,7 @@ platform mcp-install
 Equivalent manual:
 
 ```bash
-claude mcp add platform -- node /home/usuari/platform/mcp-server/index.js
+claude mcp add platform --scope user -- node /home/usuari/platform/mcp-server/index.js
 ```
 
 Per instal·lar el perfil global Claude (opcional però recomanat):
