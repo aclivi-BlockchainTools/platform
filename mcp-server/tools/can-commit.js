@@ -59,13 +59,39 @@ export default async function canCommit({ projectName, gitStatus, verificationSu
     pending.push('Documentar resum de verificació (què s\'ha provat, com, resultat)');
     checks.push({ check: 'Resum verificació', status: 'fail', detail: 'No proporcionat' });
   } else {
-    // Check for test failures in verification
-    if (verificationSummary.match(/error|fail|✗|falla|FAIL|Error/)) {
+    // Detecta si hi ha scripts de test al projecte (root, frontend, backend)
+    const hasTestScript = (() => {
+      const { existsSync: ex, readFileSync: rf } = { existsSync, readFileSync };
+      for (const rel of ['package.json', 'frontend/package.json', 'backend/package.json']) {
+        const p = join(projectDir, rel);
+        if (!ex(p)) continue;
+        try {
+          const s = JSON.parse(rf(p, 'utf-8'))?.scripts?.test || '';
+          if (s && !s.includes('no test') && !s.includes('echo')) return true;
+        } catch {}
+      }
+      return false;
+    })();
+
+    // Fals positius: "0 errors", "no errors", "sense errors" no son fallades.
+    // Fallades reals: "[N≥1] error/s", "FAILED", "✗", "falla"
+    const hasFailure =
+      /\b[1-9]\d*\s+errors?\b/i.test(verificationSummary) ||
+      /\bFAILED?\b/.test(verificationSummary) ||
+      /✗/.test(verificationSummary) ||
+      /\bfalla[rt]?\b/i.test(verificationSummary);
+
+    if (hasFailure) {
       allowed = false;
-      pending.push('Corregir errors de verificació');
-      checks.push({ check: 'Tests/Build', status: 'fail', detail: 'Hi ha errors en la verificació' });
+      pending.push('Corregir errors de verificació detectats al resum');
+      checks.push({ check: 'Tests/Build', status: 'fail', detail: 'Errors detectats al resum de verificació' });
+    } else if (hasTestScript && !/test|jest|vitest|pytest|mocha/i.test(verificationSummary)) {
+      allowed = false;
+      pending.push('Executar els tests del projecte (script test disponible) i incloure\'ls al resum');
+      checks.push({ check: 'Tests/Build', status: 'fail', detail: 'El projecte té scripts de test però no consten al resum de verificació' });
     } else {
-      checks.push({ check: 'Tests/Build', status: 'ok', detail: 'Sense errors detectats' });
+      const detail = hasTestScript ? 'Tests + build sense errors' : 'Build/typecheck sense errors (no hi ha scripts de test)';
+      checks.push({ check: 'Tests/Build', status: 'ok', detail });
     }
   }
 
